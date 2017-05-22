@@ -1,7 +1,12 @@
-
-
 #ifndef BARRUST_SIMPLE_COUNT_MIN_SKETCH_H__
 #define BARRUST_SIMPLE_COUNT_MIN_SKETCH_H__
+
+/*******************************************************************************
+***     Author: Tyler Barrus
+***     email:  barrust@gmail.com
+***     Version: 0.1.0
+***     License: MIT 2017
+*******************************************************************************/
 
 #include <inttypes.h>       /* PRIu64 */
 
