@@ -17,7 +17,7 @@ typedef struct {
     int depth;
     int width;
     cms_hash_function hash_function;
-    unsigned int** bins;
+    int** bins;
 }  CountMinSketch, count_min_sketch;
 
 
@@ -30,7 +30,13 @@ int cms_clear(CountMinSketch *cms);
 
 int cms_add(CountMinSketch *cms, char* key);
 
+int cms_remove(CountMinSketch *cms, char* key);  // TODO: implement
+
 int cms_check(CountMinSketch *cms, char* key);
+int cms_check_min(CountMinSketch *cms, char* key);
+
+int cms_check_mean(CountMinSketch *cms, char* key);  // TODO: implement
+
 
 // TODO: add additional functionality
 // uint64_t* cms_get_hashes(CountMinSketch *cms);

@@ -26,10 +26,10 @@ int cms_init(CountMinSketch *cms, int width, int depth) {
 int cms_init_alt(CountMinSketch *cms, int width, int depth, cms_hash_function hash_function) {
     cms->width = width;
     cms->depth = depth;
-    cms->bins = (unsigned int**) malloc(depth * sizeof(unsigned int*));
+    cms->bins = (int**) malloc(depth * sizeof(int*));
     int i;
     for (i = 0; i < cms->depth; i++) {
-        cms->bins[i] = calloc(width, sizeof(unsigned int));
+        cms->bins[i] = calloc(width, sizeof(int));
     }
     cms->hash_function = (hash_function == NULL) ? __default_hash : hash_function;
 
@@ -64,7 +64,9 @@ int cms_add(CountMinSketch *cms, char* key) {
     int i, num_add = 0;
     for (i = 0; i < cms->depth; i++) {
         int bin = hashes[i] % cms->width;
-        cms->bins[i][bin]++;
+        if (cms->bins[i][bin] != INT_MAX) {
+            cms->bins[i][bin]++;
+        }
         if (cms->bins[i][bin] > num_add) {
             num_add = cms->bins[i][bin];
         }
@@ -75,7 +77,7 @@ int cms_add(CountMinSketch *cms, char* key) {
 
 int cms_check(CountMinSketch *cms, char* key) {
     uint64_t* hashes = cms->hash_function(cms->depth, key);
-    unsigned int i, num_add = UINT_MAX;
+    int i, num_add = INT_MAX;
     for (i = 0; i < cms->depth; i++) {
         int bin = hashes[i] % cms->width;
         if (cms->bins[i][bin] < num_add) {
@@ -84,6 +86,10 @@ int cms_check(CountMinSketch *cms, char* key) {
     }
     free(hashes);
     return num_add;
+}
+
+int cms_check_min(CountMinSketch *cms, char* key) {
+    return cms_check(cms, key);
 }
 
 /*******************************************************************************
