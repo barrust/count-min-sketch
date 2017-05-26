@@ -16,32 +16,23 @@
 #define LOG_TWO 0.6931471805599453
 
 /* private functions */
+static int __setup_cms(CountMinSketch *cms, int width, int depth, double error_rate, double confidence, cms_hash_function hash_function);
 static uint64_t* __default_hash(int num_hashes, char *key);
 static uint64_t __fnv_1a(char *key);
 
 
 
-int cms_init_optimal_alt(CountMinSketch *cms, float error_rate, float certainty, cms_hash_function hash_function) {
+int cms_init_optimal_alt(CountMinSketch *cms, double error_rate, double confidence, cms_hash_function hash_function) {
     /* https://cs.stackexchange.com/q/44803 */
-    int width, depth;
-    width = ceil(2 / error_rate);
-    depth = ceil(log(1 / (1 - certainty)) / LOG_TWO);
-
-    return cms_init_alt(cms, width, depth, hash_function);
+    int width = ceil(2 / error_rate);
+    int depth = ceil((-1 * log(1 - confidence)) / LOG_TWO);
+    return __setup_cms(cms, width, depth, error_rate, confidence, hash_function);
 }
 
 int cms_init_alt(CountMinSketch *cms, int width, int depth, cms_hash_function hash_function) {
-    cms->width = width;
-    cms->depth = depth;
-    cms->elements_added = 0;
-    cms->bins = (int**) malloc(depth * sizeof(int*));
-    int i;
-    for (i = 0; i < cms->depth; i++) {
-        cms->bins[i] = calloc(width, sizeof(int));
-    }
-    cms->hash_function = (hash_function == NULL) ? __default_hash : hash_function;
-
-    return CMS_SUCCESS;
+    double confidence = 1 - (1 / pow(2, depth));
+    double error_rate = 2 / (double) width;
+    return __setup_cms(cms, width, depth, error_rate, confidence, hash_function);
 }
 
 int cms_destroy(CountMinSketch *cms) {
@@ -52,6 +43,8 @@ int cms_destroy(CountMinSketch *cms) {
     free(cms->bins);
     cms->width = 0;
     cms->depth = 0;
+    cms->confidence = 0.0;
+    cms->error_rate = 0.0;
     cms->elements_added = 0;
     cms->hash_function = NULL;
 
@@ -132,6 +125,22 @@ int cms_check_mean(CountMinSketch *cms, char* key) {
 /*******************************************************************************
 *    PRIVATE FUNCTIONS
 *******************************************************************************/
+static int __setup_cms(CountMinSketch *cms, int width, int depth, double error_rate, double confidence, cms_hash_function hash_function) {
+    cms->width = width;
+    cms->depth = depth;
+    cms->confidence = confidence;
+    cms->error_rate = error_rate;
+    cms->elements_added = 0;
+    cms->bins = (int**) malloc(depth * sizeof(int*));
+    int i;
+    for (i = 0; i < cms->depth; i++) {
+        cms->bins[i] = calloc(width, sizeof(int));
+    }
+    cms->hash_function = (hash_function == NULL) ? __default_hash : hash_function;
+
+    return CMS_SUCCESS;
+}
+
 static uint64_t* __default_hash(int num_hashes, char *key) {
     uint64_t *results = calloc(num_hashes, sizeof(uint64_t));
     int i;

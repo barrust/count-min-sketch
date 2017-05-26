@@ -5,7 +5,10 @@
 int main(int argc, char** argv) {
     CountMinSketch cms;
     cms_init(&cms, 10000, 7);
-
+    printf("width: %d\n", cms.width);
+    printf("depth: %d\n", cms.depth);
+    printf("confidence: %f\n", cms.confidence);
+    printf("error rate: %f\n", cms.error_rate);
     int i, res;
     for (i = 1; i <= 10; i++) {
         res = cms_add(&cms, "this is a test");
@@ -32,4 +35,13 @@ int main(int argc, char** argv) {
     }
 
     cms_destroy(&cms);
+
+    CountMinSketch cmso;
+    cms_init_optimal(&cmso, 0.001, 0.99999);
+    printf("width: %d\n", cmso.width);
+    printf("depth: %d\n", cmso.depth);
+    printf("confidence: %f\n", cmso.confidence);
+    printf("error rate: %f\n", cmso.error_rate);
+
+    cms_destroy(&cmso);
 }

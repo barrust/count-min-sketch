@@ -17,6 +17,8 @@ typedef struct {
     int depth;
     int width;
     long elements_added;
+    double confidence;
+    double error_rate;
     cms_hash_function hash_function;
     int** bins;
 }  CountMinSketch, count_min_sketch;
@@ -27,7 +29,7 @@ static int __inline__  cms_init(CountMinSketch *cms, int width, int depth) {
     return cms_init_alt(cms, width, depth, NULL);
 }
 
-int cms_init_optimal_alt(CountMinSketch *cms, float error_rate, float confidence, cms_hash_function hash_function);
+int cms_init_optimal_alt(CountMinSketch *cms, double error_rate, double confidence, cms_hash_function hash_function);
 static int __inline__  cms_init_optimal(CountMinSketch *cms, float error_rate, float confidence) {
     return cms_init_optimal_alt(cms, error_rate, confidence, NULL);
 }
