@@ -22,7 +22,6 @@ error and confidence
 
 ## Future Enhancements
 * update tests to be more in-depth
-* document the .h file
 * add export/import (?)
 
 ## Usage:
