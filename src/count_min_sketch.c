@@ -1,7 +1,7 @@
 /*******************************************************************************
 ***     Author: Tyler Barrus
 ***     email:  barrust@gmail.com
-***     Version: 0.1.0
+***     Version: 0.1.1
 ***     License: MIT 2017
 *******************************************************************************/
 
@@ -16,12 +16,6 @@
 static uint64_t* __default_hash(int num_hashes, char *key);
 static uint64_t __fnv_1a(char *key);
 
-
-
-
-int cms_init(CountMinSketch *cms, int width, int depth) {
-    return cms_init_alt(cms, width, depth, NULL);
-}
 
 int cms_init_alt(CountMinSketch *cms, int width, int depth, cms_hash_function hash_function) {
     cms->width = width;
@@ -75,6 +69,22 @@ int cms_add(CountMinSketch *cms, char* key) {
     return num_add;
 }
 
+int cms_remove(CountMinSketch *cms, char* key) {
+    uint64_t* hashes = cms->hash_function(cms->depth, key);
+    int i, num_add = 0;
+    for (i = 0; i < cms->depth; i++) {
+        int bin = hashes[i] % cms->width;
+        if (cms->bins[i][bin] != INT_MIN) {
+            cms->bins[i][bin]--;
+        }
+        if (cms->bins[i][bin] > num_add) {
+            num_add = cms->bins[i][bin];
+        }
+    }
+    free(hashes);
+    return num_add;
+}
+
 int cms_check(CountMinSketch *cms, char* key) {
     uint64_t* hashes = cms->hash_function(cms->depth, key);
     int i, num_add = INT_MAX;
@@ -90,6 +100,19 @@ int cms_check(CountMinSketch *cms, char* key) {
 
 int cms_check_min(CountMinSketch *cms, char* key) {
     return cms_check(cms, key);
+}
+
+int cms_check_mean(CountMinSketch *cms, char* key) {
+    uint64_t* hashes = cms->hash_function(cms->depth, key);
+    int i, num_add = 0;
+    for (i = 0; i < cms->depth; i++) {
+        int bin = hashes[i] % cms->width;
+        if (cms->bins[i][bin] < num_add) {
+            num_add += cms->bins[i][bin];
+        }
+    }
+    free(hashes);
+    return num_add / cms->depth;
 }
 
 /*******************************************************************************

@@ -4,7 +4,7 @@
 /*******************************************************************************
 ***     Author: Tyler Barrus
 ***     email:  barrust@gmail.com
-***     Version: 0.1.0
+***     Version: 0.1.1
 ***     License: MIT 2017
 *******************************************************************************/
 
@@ -21,8 +21,10 @@ typedef struct {
 }  CountMinSketch, count_min_sketch;
 
 
-int cms_init(CountMinSketch *cms, int width, int depth);
 int cms_init_alt(CountMinSketch *cms, int width, int depth, cms_hash_function hash_function);
+static int __inline__  cms_init(CountMinSketch *cms, int width, int depth) {
+    return cms_init_alt(cms, width, depth, NULL);
+}
 
 int cms_destroy(CountMinSketch *cms);
 
@@ -30,12 +32,12 @@ int cms_clear(CountMinSketch *cms);
 
 int cms_add(CountMinSketch *cms, char* key);
 
-int cms_remove(CountMinSketch *cms, char* key);  // TODO: implement
+int cms_remove(CountMinSketch *cms, char* key);
 
 int cms_check(CountMinSketch *cms, char* key);
 int cms_check_min(CountMinSketch *cms, char* key);
 
-int cms_check_mean(CountMinSketch *cms, char* key);  // TODO: implement
+int cms_check_mean(CountMinSketch *cms, char* key);
 
 
 // TODO: add additional functionality

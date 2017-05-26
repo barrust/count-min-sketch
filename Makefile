@@ -1,15 +1,16 @@
+CC=gcc
 TESTDIR=tests
 DISTDIR=dist
 SRCDIR=src
-CCFLAGS=-Wall -Wpedantic
+CCFLAGS=-Wall -Wpedantic -Winline -O3
 
 
 
 all: clean count_min_sketch
-	gcc $(DISTDIR)/count_min_sketch.o $(TESTDIR)/count_min_sketch_test.c $(CCFLAGS) -o ./$(DISTDIR)/cms
+	$(CC) $(DISTDIR)/count_min_sketch.o $(TESTDIR)/count_min_sketch_test.c $(CCFLAGS) -o ./$(DISTDIR)/cms
 
 clean:
 	rm -rf ./$(DISTDIR)/*
 
 count_min_sketch:
-	gcc -c $(SRCDIR)/count_min_sketch.c -o $(DISTDIR)/count_min_sketch.o $(CCFLAGS)
+	$(CC) -c $(SRCDIR)/count_min_sketch.c -o $(DISTDIR)/count_min_sketch.o $(CCFLAGS)

@@ -11,15 +11,18 @@ possible that elements are over counted.
 MIT 2017
 
 ## Main Features:
-* Ability to add and lookup probable insertions into the Count-Min Sketch.
+* Ability to add and remove elements from the Count-Min Sketch
+* Ability to lookup elements in the data-structure
+* Multiple lookup types:
+    * Minimum
+    * Mean (good for when removes and negatives are possible, but increases
+        the false count upwards)
 
 ## Future Enhancements
-* add remove functionality
-* add inline functionality
-* add other lookup strategies b/c of remove
+* update tests to be more in-depth
+* document the .h file
 * add export/import (?)
-* add width and depth calculators (?)
-
+* add width and depth calculators (?) - https://cs.stackexchange.com/q/44803
 
 ## Usage:
 ``` c
