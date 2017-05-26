@@ -5,6 +5,7 @@
 * Mean based lookup
 * Optimal width / depth initialization based on error rate and certainty
 * Track elements inserted
+* Calculate hashes for key and return to caller
 
 ### Version 0.1.0
 * Initial version of a basic count-min sketch data-structure

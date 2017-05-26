@@ -63,7 +63,7 @@ int cms_clear(CountMinSketch *cms) {
 }
 
 int cms_add(CountMinSketch *cms, char* key) {
-    uint64_t* hashes = cms->hash_function(cms->depth, key);
+    uint64_t* hashes = cms_get_hashes(cms, key);
     int i, num_add = 0;
     for (i = 0; i < cms->depth; i++) {
         int bin = hashes[i] % cms->width;
@@ -80,7 +80,7 @@ int cms_add(CountMinSketch *cms, char* key) {
 }
 
 int cms_remove(CountMinSketch *cms, char* key) {
-    uint64_t* hashes = cms->hash_function(cms->depth, key);
+    uint64_t* hashes = cms_get_hashes(cms, key);
     int i, num_add = 0;
     for (i = 0; i < cms->depth; i++) {
         int bin = hashes[i] % cms->width;
@@ -97,7 +97,7 @@ int cms_remove(CountMinSketch *cms, char* key) {
 }
 
 int cms_check(CountMinSketch *cms, char* key) {
-    uint64_t* hashes = cms->hash_function(cms->depth, key);
+    uint64_t* hashes = cms_get_hashes(cms, key);
     int i, num_add = INT_MAX;
     for (i = 0; i < cms->depth; i++) {
         int bin = hashes[i] % cms->width;
@@ -110,7 +110,7 @@ int cms_check(CountMinSketch *cms, char* key) {
 }
 
 int cms_check_mean(CountMinSketch *cms, char* key) {
-    uint64_t* hashes = cms->hash_function(cms->depth, key);
+    uint64_t* hashes = cms_get_hashes(cms, key);
     int i, num_add = 0;
     for (i = 0; i < cms->depth; i++) {
         int bin = hashes[i] % cms->width;
@@ -120,6 +120,10 @@ int cms_check_mean(CountMinSketch *cms, char* key) {
     }
     free(hashes);
     return num_add / cms->depth;
+}
+
+uint64_t* cms_get_hashes_alt(CountMinSketch *cms, int num_hashes, char* key) {
+    return cms->hash_function(num_hashes, key);
 }
 
 /*******************************************************************************
