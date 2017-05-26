@@ -10,16 +10,30 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <inttypes.h>       /* PRIu64 */
+#include <math.h>
 #include "count_min_sketch.h"
+
+#define LOG_TWO 0.6931471805599453
 
 /* private functions */
 static uint64_t* __default_hash(int num_hashes, char *key);
 static uint64_t __fnv_1a(char *key);
 
 
+
+int cms_init_optimal_alt(CountMinSketch *cms, float error_rate, float certainty, cms_hash_function hash_function) {
+    /* https://cs.stackexchange.com/q/44803 */
+    int width, depth;
+    width = ceil(2 / error_rate);
+    depth = ceil(log(1 / (1 - certainty)) / LOG_TWO);
+
+    return cms_init_alt(cms, width, depth, hash_function);
+}
+
 int cms_init_alt(CountMinSketch *cms, int width, int depth, cms_hash_function hash_function) {
     cms->width = width;
     cms->depth = depth;
+    cms->elements_added = 0;
     cms->bins = (int**) malloc(depth * sizeof(int*));
     int i;
     for (i = 0; i < cms->depth; i++) {
@@ -38,6 +52,7 @@ int cms_destroy(CountMinSketch *cms) {
     free(cms->bins);
     cms->width = 0;
     cms->depth = 0;
+    cms->elements_added = 0;
     cms->hash_function = NULL;
 
     return CMS_SUCCESS;
@@ -50,6 +65,7 @@ int cms_clear(CountMinSketch *cms) {
             cms->bins[i][j] = 0;
         }
     }
+    cms->elements_added = 0;
     return CMS_SUCCESS;
 }
 
@@ -65,6 +81,7 @@ int cms_add(CountMinSketch *cms, char* key) {
             num_add = cms->bins[i][bin];
         }
     }
+    cms->elements_added++;
     free(hashes);
     return num_add;
 }
@@ -81,6 +98,7 @@ int cms_remove(CountMinSketch *cms, char* key) {
             num_add = cms->bins[i][bin];
         }
     }
+    cms->elements_added--;
     free(hashes);
     return num_add;
 }
@@ -96,10 +114,6 @@ int cms_check(CountMinSketch *cms, char* key) {
     }
     free(hashes);
     return num_add;
-}
-
-int cms_check_min(CountMinSketch *cms, char* key) {
-    return cms_check(cms, key);
 }
 
 int cms_check_mean(CountMinSketch *cms, char* key) {

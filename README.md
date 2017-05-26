@@ -13,6 +13,8 @@ MIT 2017
 ## Main Features:
 * Ability to add and remove elements from the Count-Min Sketch
 * Ability to lookup elements in the data-structure
+* Ability to set depth & width or have the library calculate them based on
+error and confidence
 * Multiple lookup types:
     * Minimum
     * Mean (good for when removes and negatives are possible, but increases
@@ -22,7 +24,6 @@ MIT 2017
 * update tests to be more in-depth
 * document the .h file
 * add export/import (?)
-* add width and depth calculators (?) - https://cs.stackexchange.com/q/44803
 
 ## Usage:
 ``` c
@@ -43,3 +44,6 @@ if (res != 10) {
 }
 cms_destroy(&cms);
 ```
+
+## Required Compile Flags
+-lm

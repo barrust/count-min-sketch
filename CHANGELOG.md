@@ -3,6 +3,8 @@
 ### Version 0.1.1
 * Ability to remove elements
 * Mean based lookup
+* Optimal width / depth initialization based on error rate and certainty
+* Track elements inserted
 
 ### Version 0.1.0
 * Initial version of a basic count-min sketch data-structure

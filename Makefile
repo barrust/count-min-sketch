@@ -2,7 +2,7 @@ CC=gcc
 TESTDIR=tests
 DISTDIR=dist
 SRCDIR=src
-CCFLAGS=-Wall -Wpedantic -Winline -O3
+CCFLAGS=-lm -Wall -Wpedantic -Winline -O3
 
 
 
