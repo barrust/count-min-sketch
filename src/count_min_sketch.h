@@ -35,7 +35,7 @@ static __inline__ int cms_init(CountMinSketch *cms, int width, int depth) {
     return cms_init_alt(cms, width, depth, NULL);
 }
 
-/*  Initialize the count-min sketch based on user defined error rate and 
+/*  Initialize the count-min sketch based on user defined error rate and
     confidence values */
 int cms_init_optimal_alt(CountMinSketch *cms, double error_rate, double confidence, cms_hash_function hash_function);
 static __inline__ int cms_init_optimal(CountMinSketch *cms, float error_rate, float confidence) {
@@ -50,14 +50,18 @@ int cms_clear(CountMinSketch *cms);
 
 /* Add the provided key to the count-min sketch */
 int cms_add(CountMinSketch *cms, char* key);
+int cms_add_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);  // TODO: Implement
 
 /*  Remove the provided key to the count-min sketch;
     NOTE: Values can be negative
     NOTE: Best check method when remove is used is `cms_check_mean` */
 int cms_remove(CountMinSketch *cms, char* key);
+int cms_remove_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);  // TODO: Implement
 
 /* Determine the minimum number of times the key may have been inserted */
 int cms_check(CountMinSketch *cms, char* key);
+int cms_check_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);  // TODO: Implement
+int cms_check_min_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);  // TODO: Implement
 static __inline__ int cms_check_min(CountMinSketch *cms, char* key) {
     return cms_check(cms, key);
 }
@@ -66,6 +70,7 @@ static __inline__ int cms_check_min(CountMinSketch *cms, char* key) {
     NOTE: Mean check increases the over counting but is a `better` strategy
     when removes are added and negatives are possible */
 int cms_check_mean(CountMinSketch *cms, char* key);
+int cms_check_mean_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);  // TODO: Implement
 
 /*  Return the hashes for the provided key based on the hashing function of
     the count-min sketch
