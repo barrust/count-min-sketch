@@ -17,7 +17,7 @@ MIT 2017
 * Ability to set depth & width or have the library calculate them based on
 error and confidence
 * Multiple lookup types:
-    * Minimum
+    * Maximum (largest possible number of insertions)
     * Mean (good for when removes and negatives are possible, but increases
         the false count upwards)
 
