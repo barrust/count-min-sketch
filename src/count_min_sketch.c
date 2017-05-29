@@ -62,8 +62,11 @@ int cms_clear(CountMinSketch *cms) {
     return CMS_SUCCESS;
 }
 
-int cms_add(CountMinSketch *cms, char* key) {
-    uint64_t* hashes = cms_get_hashes(cms, key);
+int cms_add_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
+    if (num_hashes < cms->depth) {
+        fprintf(stderr, "Inssufecient hashes to complete the addition of the element to the count-min sketch!");
+        return CMS_ERROR;
+    }
     int i, num_add = 0;
     for (i = 0; i < cms->depth; i++) {
         int bin = hashes[i] % cms->width;
@@ -75,12 +78,21 @@ int cms_add(CountMinSketch *cms, char* key) {
         }
     }
     cms->elements_added++;
+    return num_add;
+}
+
+int cms_add(CountMinSketch *cms, char* key) {
+    uint64_t* hashes = cms_get_hashes(cms, key);
+    int num_add = cms_add_alt(cms, hashes, cms->depth);
     free(hashes);
     return num_add;
 }
 
-int cms_remove(CountMinSketch *cms, char* key) {
-    uint64_t* hashes = cms_get_hashes(cms, key);
+int cms_remove_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
+    if (num_hashes < cms->depth) {
+        fprintf(stderr, "Inssufecient hashes to complete the removal of the element to the count-min sketch!");
+        return CMS_ERROR;
+    }
     int i, num_add = 0;
     for (i = 0; i < cms->depth; i++) {
         int bin = hashes[i] % cms->width;
@@ -92,12 +104,21 @@ int cms_remove(CountMinSketch *cms, char* key) {
         }
     }
     cms->elements_added--;
+    return num_add;
+}
+
+int cms_remove(CountMinSketch *cms, char* key) {
+    uint64_t* hashes = cms_get_hashes(cms, key);
+    int num_add = cms_remove_alt(cms, hashes, cms->depth);
     free(hashes);
     return num_add;
 }
 
-int cms_check(CountMinSketch *cms, char* key) {
-    uint64_t* hashes = cms_get_hashes(cms, key);
+int cms_check_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
+    if (num_hashes < cms->depth) {
+        fprintf(stderr, "Inssufecient hashes to complete the min lookup of the element to the count-min sketch!");
+        return CMS_ERROR;
+    }
     int i, num_add = INT_MAX;
     for (i = 0; i < cms->depth; i++) {
         int bin = hashes[i] % cms->width;
@@ -105,12 +126,21 @@ int cms_check(CountMinSketch *cms, char* key) {
             num_add = cms->bins[i][bin];
         }
     }
+    return num_add;
+}
+
+int cms_check(CountMinSketch *cms, char* key) {
+    uint64_t* hashes = cms_get_hashes(cms, key);
+    int num_add = cms_check_alt(cms, hashes, cms->depth);
     free(hashes);
     return num_add;
 }
 
-int cms_check_mean(CountMinSketch *cms, char* key) {
-    uint64_t* hashes = cms_get_hashes(cms, key);
+int cms_check_mean_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
+    if (num_hashes < cms->depth) {
+        fprintf(stderr, "Inssufecient hashes to complete the mean lookup of the element to the count-min sketch!");
+        return CMS_ERROR;
+    }
     int i, num_add = 0;
     for (i = 0; i < cms->depth; i++) {
         int bin = hashes[i] % cms->width;
@@ -118,8 +148,14 @@ int cms_check_mean(CountMinSketch *cms, char* key) {
             num_add += cms->bins[i][bin];
         }
     }
-    free(hashes);
     return num_add / cms->depth;
+}
+
+int cms_check_mean(CountMinSketch *cms, char* key) {
+    uint64_t* hashes = cms_get_hashes(cms, key);
+    int num_add = cms_check_mean_alt(cms, hashes, cms->depth);
+    free(hashes);
+    return num_add;
 }
 
 uint64_t* cms_get_hashes_alt(CountMinSketch *cms, int num_hashes, char* key) {
