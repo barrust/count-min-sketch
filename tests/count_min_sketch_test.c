@@ -24,11 +24,11 @@ int main(int argc, char** argv) {
         }
     }
 
-    /* test min check */
+    /* test max check */
     for (i = 0; i < 10; i++) {
         char key[KEY_LEN] = {0};
         sprintf(key, "%d", i);
-        res = cms_check_min(&cms, key);
+        res = cms_check_max(&cms, key);
         if (res != 10) {
             printf("Error with key=%s\ti=%d\tres=%d\n", key, i, res);
         }

@@ -59,13 +59,13 @@ int cms_add_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);
 int cms_remove(CountMinSketch *cms, char* key);
 int cms_remove_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);
 
-/* Determine the minimum number of times the key may have been inserted */
+/* Determine the maximum number of times the key may have been inserted */
 int cms_check(CountMinSketch *cms, char* key);
 int cms_check_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);
-static __inline__ int cms_check_min(CountMinSketch *cms, char* key) {
+static __inline__ int cms_check_max(CountMinSketch *cms, char* key) {
     return cms_check(cms, key);
 }
-static __inline__ int cms_check_min_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
+static __inline__ int cms_check_max_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
     return cms_check_alt(cms, hashes, num_hashes);
 }
 
