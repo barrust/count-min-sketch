@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <math.h>
 #include "../src/count_min_sketch.h"
 
 #define KEY_LEN 5
@@ -23,11 +24,33 @@ int main(int argc, char** argv) {
         }
     }
 
+    /* test min check */
+    for (i = 0; i < 10; i++) {
+        char key[KEY_LEN] = {0};
+        sprintf(key, "%d", i);
+        res = cms_check_min(&cms, key);
+        if (res != 10) {
+            printf("Error with key=%s\ti=%d\tres=%d\n", key, i, res);
+        }
+    }
+
+    /* test mean check */
+    for (i = 0; i < 10; i++) {
+        char key[KEY_LEN] = {0};
+        sprintf(key, "%d", i);
+        int error_rate = (10 + ceil(10 * cms.error_rate));
+        res = cms_check_mean(&cms, key);
+        if (res < 10 || res > error_rate ) {
+            printf("Error with key=%s\ti=%d\tres=%d\n", key, i, res);
+        }
+    }
+
     res = cms_check(&cms, "0");
     if (res != 10) {
         printf("Error with lookup: %d\n", res);
     }
 
+    /* test remove */
     for (i = 0; i < 10; i++) {
         for (j = 10; j > 0; j--) {
             char key[KEY_LEN] = {0};
