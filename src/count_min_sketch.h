@@ -26,7 +26,7 @@ typedef struct {
     double confidence;
     double error_rate;
     cms_hash_function hash_function;
-    int** bins;
+    int* bins;
 }  CountMinSketch, count_min_sketch;
 
 

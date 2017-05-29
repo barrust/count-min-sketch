@@ -36,10 +36,6 @@ int cms_init_alt(CountMinSketch *cms, int width, int depth, cms_hash_function ha
 }
 
 int cms_destroy(CountMinSketch *cms) {
-    int i;
-    for (i = 0; i < cms->depth; i++) {
-        free(cms->bins[i]);
-    }
     free(cms->bins);
     cms->width = 0;
     cms->depth = 0;
@@ -52,11 +48,9 @@ int cms_destroy(CountMinSketch *cms) {
 }
 
 int cms_clear(CountMinSketch *cms) {
-    int i, j;
-    for (i = 0; i < cms->depth; i++) {
-        for (j = 0; j < cms->width; j++) {
-            cms->bins[i][j] = 0;
-        }
+    int i, j = cms->width * cms->depth;
+    for (i = 0; i < j; i++) {
+        cms->bins[i] = 0;
     }
     cms->elements_added = 0;
     return CMS_SUCCESS;
@@ -67,14 +61,14 @@ int cms_add_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
         fprintf(stderr, "Inssufecient hashes to complete the addition of the element to the count-min sketch!");
         return CMS_ERROR;
     }
-    int i, num_add = 0;
+    int i, num_add = INT_MIN;
     for (i = 0; i < cms->depth; i++) {
-        int bin = hashes[i] % cms->width;
-        if (cms->bins[i][bin] != INT_MAX) {
-            cms->bins[i][bin]++;
+        int bin = (hashes[i] % cms->width) + (i * cms->width);
+        if (cms->bins[bin] != INT_MAX) {
+            cms->bins[bin]++;
         }
-        if (cms->bins[i][bin] > num_add) {
-            num_add = cms->bins[i][bin];
+        if (cms->bins[bin] > num_add) {
+            num_add = cms->bins[bin];
         }
     }
     cms->elements_added++;
@@ -93,14 +87,14 @@ int cms_remove_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
         fprintf(stderr, "Inssufecient hashes to complete the removal of the element to the count-min sketch!");
         return CMS_ERROR;
     }
-    int i, num_add = 0;
+    int i, num_add = INT_MIN;
     for (i = 0; i < cms->depth; i++) {
-        int bin = hashes[i] % cms->width;
-        if (cms->bins[i][bin] != INT_MIN) {
-            cms->bins[i][bin]--;
+        int bin = (hashes[i] % cms->width) + (i * cms->width);
+        if (cms->bins[bin] != INT_MIN) {
+            cms->bins[bin]--;
         }
-        if (cms->bins[i][bin] > num_add) {
-            num_add = cms->bins[i][bin];
+        if (cms->bins[bin] > num_add) {
+            num_add = cms->bins[bin];
         }
     }
     cms->elements_added--;
@@ -121,9 +115,9 @@ int cms_check_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
     }
     int i, num_add = INT_MAX;
     for (i = 0; i < cms->depth; i++) {
-        int bin = hashes[i] % cms->width;
-        if (cms->bins[i][bin] < num_add) {
-            num_add = cms->bins[i][bin];
+        int bin = (hashes[i] % cms->width) + (i * cms->width);
+        if (cms->bins[bin] < num_add) {
+            num_add = cms->bins[bin];
         }
     }
     return num_add;
@@ -143,10 +137,8 @@ int cms_check_mean_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
     }
     int i, num_add = 0;
     for (i = 0; i < cms->depth; i++) {
-        int bin = hashes[i] % cms->width;
-        if (cms->bins[i][bin] < num_add) {
-            num_add += cms->bins[i][bin];
-        }
+        int bin = (hashes[i] % cms->width) + (i * cms->width);
+        num_add += cms->bins[bin];
     }
     return num_add / cms->depth;
 }
@@ -171,11 +163,7 @@ static int __setup_cms(CountMinSketch *cms, int width, int depth, double error_r
     cms->confidence = confidence;
     cms->error_rate = error_rate;
     cms->elements_added = 0;
-    cms->bins = (int**) malloc(depth * sizeof(int*));
-    int i;
-    for (i = 0; i < cms->depth; i++) {
-        cms->bins[i] = calloc(width, sizeof(int));
-    }
+    cms->bins = calloc(width * depth, sizeof(int));
     cms->hash_function = (hash_function == NULL) ? __default_hash : hash_function;
 
     return CMS_SUCCESS;
