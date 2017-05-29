@@ -9,6 +9,7 @@
 *******************************************************************************/
 
 #include <inttypes.h>       /* PRIu64 */
+#include <limits.h>         /* INT_MIN */
 
 /* https://gcc.gnu.org/onlinedocs/gcc/Alternate-Keywords.html#Alternate-Keywords */
 #ifndef __GNUC__

@@ -1,5 +1,9 @@
 ## Current Version
 
+### Version 0.1.2
+* Add ability to add, remove, and lookup elements based only on the hash array
+
+
 ### Version 0.1.1
 * Ability to remove elements
 * Mean based lookup
