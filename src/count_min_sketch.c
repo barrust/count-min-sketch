@@ -61,13 +61,13 @@ int cms_add_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
         fprintf(stderr, "Inssufecient hashes to complete the addition of the element to the count-min sketch!");
         return CMS_ERROR;
     }
-    int i, num_add = INT_MIN;
+    int i, num_add = INT_MAX;
     for (i = 0; i < cms->depth; i++) {
         int bin = (hashes[i] % cms->width) + (i * cms->width);
         if (cms->bins[bin] != INT_MAX) {
             cms->bins[bin]++;
         }
-        if (cms->bins[bin] > num_add) {
+        if (cms->bins[bin] < num_add) {
             num_add = cms->bins[bin];
         }
     }
@@ -87,13 +87,13 @@ int cms_remove_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
         fprintf(stderr, "Inssufecient hashes to complete the removal of the element to the count-min sketch!");
         return CMS_ERROR;
     }
-    int i, num_add = INT_MIN;
+    int i, num_add = INT_MAX;
     for (i = 0; i < cms->depth; i++) {
         int bin = (hashes[i] % cms->width) + (i * cms->width);
         if (cms->bins[bin] != INT_MIN) {
             cms->bins[bin]--;
         }
-        if (cms->bins[bin] > num_add) {
+        if (cms->bins[bin] < num_add) {
             num_add = cms->bins[bin];
         }
     }
