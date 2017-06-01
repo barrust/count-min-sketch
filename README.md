@@ -13,10 +13,11 @@ MIT 2017
 ## Main Features:
 * Ability to add and remove elements from the Count-Min Sketch
 * Ability to lookup elements in the data-structure
+* Add, remove, or lookup elements based on pre-calculated hashes
 * Ability to set depth & width or have the library calculate them based on
 error and confidence
 * Multiple lookup types:
-    * Minimum
+    * Maximum (largest possible number of insertions)
     * Mean (good for when removes and negatives are possible, but increases
         the false count upwards)
 
