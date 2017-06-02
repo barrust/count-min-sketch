@@ -3,9 +3,9 @@
 A Count-Min Sketch implementation in C.
 
 Count-Min Sketch is a probabilistic data-structure that takes sub linear space
-to store the probable count of occurrences of elements added into the
+to store the probable count, or frequency, of occurrences of elements added into the
 data-structure. Due to the structure and strategy of storing elements, it is
-possible that elements are over counted.
+possible that elements are over counted but not under counted.
 
 ## License:
 MIT 2017
@@ -20,9 +20,11 @@ error and confidence
     * Maximum (largest possible number of insertions)
     * Mean (good for when removes and negatives are possible, but increases
         the false count upwards)
+* Export and Import count-min sketch to file
 
 ## Future Enhancements
 * add do everything directly on disk (?)
+* add import / export to hex (?)
 
 ## Usage:
 ``` c

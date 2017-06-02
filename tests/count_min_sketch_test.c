@@ -5,6 +5,7 @@
 #include "../src/count_min_sketch.h"
 
 #define KEY_LEN 5
+
 #define KNRM  "\x1B[0m"
 #define KRED  "\x1B[31m"
 #define KGRN  "\x1B[32m"
@@ -55,12 +56,12 @@ int main(int argc, char** argv) {
 
 
     /* test max check */
-    printf("Count-Min Sketch: check max insertions: ");
+    printf("Count-Min Sketch: check number of insertions using min strategy: ");
     result = 0;
     for (i = 0; i < 10; i++) {
         char key[KEY_LEN] = {0};
         sprintf(key, "%d", i);
-        res = cms_check_max(&cms, key);
+        res = cms_check_min(&cms, key);
         if (res != 10) {
             result = 1;
             // printf("Error with key=%s\ti=%d\tres=%d\n", key, i, res);
@@ -151,12 +152,12 @@ int main(int argc, char** argv) {
     }
     success_or_failure(result);
 
-    printf("Count-Min Sketch: after import check max insertions: ");
+    printf("Count-Min Sketch: after import check max number of insertions using the min strategy: ");
     result = 0;
     for (i = 0; i < 10; i++) {
         char key[KEY_LEN] = {0};
         sprintf(key, "%d", i);
-        res = cms_check_max(&cms, key);
+        res = cms_check_min(&cms, key);
         if (res != 10) {
             result = 1;
             printf("Error with key=%s\ti=%d\tres=%d\n", key, i, res);

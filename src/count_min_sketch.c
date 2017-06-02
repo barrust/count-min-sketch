@@ -16,7 +16,7 @@
 #define LOG_TWO 0.6931471805599453
 
 /* private functions */
-static int __setup_cms(CountMinSketch *cms, int width, int depth, double error_rate, double confidence, cms_hash_function hash_function);
+static int __setup_cms(CountMinSketch *cms, unsigned int width, unsigned int depth, double error_rate, double confidence, cms_hash_function hash_function);
 static void __write_to_file(CountMinSketch *cms, FILE *fp, short on_disk);
 static void __read_from_file(CountMinSketch *cms, FILE *fp, short on_disk, char *filename);
 static uint64_t* __default_hash(int num_hashes, char *key);
@@ -26,12 +26,12 @@ static uint64_t __fnv_1a(char *key);
 
 int cms_init_optimal_alt(CountMinSketch *cms, double error_rate, double confidence, cms_hash_function hash_function) {
     /* https://cs.stackexchange.com/q/44803 */
-    int width = ceil(2 / error_rate);
-    int depth = ceil((-1 * log(1 - confidence)) / LOG_TWO);
+    unsigned int width = ceil(2 / error_rate);
+    unsigned int depth = ceil((-1 * log(1 - confidence)) / LOG_TWO);
     return __setup_cms(cms, width, depth, error_rate, confidence, hash_function);
 }
 
-int cms_init_alt(CountMinSketch *cms, int width, int depth, cms_hash_function hash_function) {
+int cms_init_alt(CountMinSketch *cms, unsigned int width, unsigned int depth, cms_hash_function hash_function) {
     double confidence = 1 - (1 / pow(2, depth));
     double error_rate = 2 / (double) width;
     return __setup_cms(cms, width, depth, error_rate, confidence, hash_function);
@@ -184,7 +184,7 @@ int cms_import_alt(CountMinSketch *cms, char* filepath, cms_hash_function hash_f
 /*******************************************************************************
 *    PRIVATE FUNCTIONS
 *******************************************************************************/
-static int __setup_cms(CountMinSketch *cms, int width, int depth, double error_rate, double confidence, cms_hash_function hash_function) {
+static int __setup_cms(CountMinSketch *cms, unsigned int width, unsigned int depth, double error_rate, double confidence, cms_hash_function hash_function) {
     cms->width = width;
     cms->depth = depth;
     cms->confidence = confidence;

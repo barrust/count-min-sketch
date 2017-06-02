@@ -7,8 +7,6 @@
 ### Version 0.1.2
 * Added ability to add, remove, and lookup elements based only on the hash array
 * Changed bin layout to be a single array of ints for easier import export
-* Fixed min-check misnomer since it is really checking the maximum number of
-insertions
 * Fixed logical error with calculating maximum and mean insertion values
 
 

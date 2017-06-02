@@ -22,9 +22,9 @@
 typedef uint64_t* (*cms_hash_function) (int num_hashes, char *key);
 
 typedef struct {
-    int depth;
-    int width;
-    long elements_added;
+    unsigned int depth;
+    unsigned int width;
+    unsigned long elements_added;
     double confidence;
     double error_rate;
     cms_hash_function hash_function;
@@ -33,8 +33,8 @@ typedef struct {
 
 
 /* Initialize the count-min sketch based on user defined width and depth */
-int cms_init_alt(CountMinSketch *cms, int width, int depth, cms_hash_function hash_function);
-static __inline__ int cms_init(CountMinSketch *cms, int width, int depth) {
+int cms_init_alt(CountMinSketch *cms, unsigned int width, unsigned int depth, cms_hash_function hash_function);
+static __inline__ int cms_init(CountMinSketch *cms, unsigned int width, unsigned int depth) {
     return cms_init_alt(cms, width, depth, NULL);
 }
 
@@ -54,6 +54,8 @@ int cms_clear(CountMinSketch *cms);
 /* Export count-min sketch to file */
 int cms_export(CountMinSketch *cms, char* filepath);
 
+/*  Import count-min sketch from file
+    NOTE: It is up to the caller to provide the correct hashing algorithm */
 int cms_import_alt(CountMinSketch *cms, char* filepath, cms_hash_function hash_function);
 static __inline__ int cms_import(CountMinSketch *cms, char* filepath) {
     return cms_import_alt(cms, filepath, NULL);
@@ -72,10 +74,10 @@ int cms_remove_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);
 /* Determine the maximum number of times the key may have been inserted */
 int cms_check(CountMinSketch *cms, char* key);
 int cms_check_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);
-static __inline__ int cms_check_max(CountMinSketch *cms, char* key) {
+static __inline__ int cms_check_min(CountMinSketch *cms, char* key) {
     return cms_check(cms, key);
 }
-static __inline__ int cms_check_max_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
+static __inline__ int cms_check_min_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
     return cms_check_alt(cms, hashes, num_hashes);
 }
 
@@ -88,7 +90,8 @@ int cms_check_mean_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);
 /*  Return the hashes for the provided key based on the hashing function of
     the count-min sketch
     NOTE: Useful when multiple count-min sketches use the same hashing
-    functions */
+    functions
+    NOTE: Up to the caller to free the array of hash values */
 uint64_t* cms_get_hashes_alt(CountMinSketch *cms, int num_hashes, char* key);
 static __inline__ uint64_t* cms_get_hashes(CountMinSketch *cms, char* key) {
     return cms_get_hashes_alt(cms, cms->depth, key);
