@@ -1,5 +1,8 @@
 ## Current Version
 
+### Version 0.1.3
+* Updated tests
+
 ### Version 0.1.2
 * Add ability to add, remove, and lookup elements based only on the hash array
 * Changed bin layout to be a single array of ints for easier import export
