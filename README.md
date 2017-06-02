@@ -22,8 +22,7 @@ error and confidence
         the false count upwards)
 
 ## Future Enhancements
-* update tests to be more in-depth
-* add export/import (?)
+* add do everything directly on disk (?)
 
 ## Usage:
 ``` c

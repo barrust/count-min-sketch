@@ -17,6 +17,8 @@
 
 /* private functions */
 static int __setup_cms(CountMinSketch *cms, int width, int depth, double error_rate, double confidence, cms_hash_function hash_function);
+static void __write_to_file(CountMinSketch *cms, FILE *fp, short on_disk);
+static void __read_from_file(CountMinSketch *cms, FILE *fp, short on_disk, char *filename);
 static uint64_t* __default_hash(int num_hashes, char *key);
 static uint64_t __fnv_1a(char *key);
 
@@ -154,6 +156,31 @@ uint64_t* cms_get_hashes_alt(CountMinSketch *cms, int num_hashes, char* key) {
     return cms->hash_function(num_hashes, key);
 }
 
+int cms_export(CountMinSketch *cms, char* filepath) {
+    FILE *fp;
+    fp = fopen(filepath, "w+b");
+    if (fp == NULL) {
+        fprintf(stderr, "Can't open file %s!\n", filepath);
+        return CMS_ERROR;
+    }
+    __write_to_file(cms, fp, 0);
+    fclose(fp);
+    return CMS_SUCCESS;
+}
+
+int cms_import_alt(CountMinSketch *cms, char* filepath, cms_hash_function hash_function) {
+    FILE *fp;
+    fp = fopen(filepath, "r+b");
+    if (fp == NULL) {
+        fprintf(stderr, "Can't open file %s!\n", filepath);
+        return CMS_ERROR;
+    }
+    __read_from_file(cms, fp, 0, NULL);
+    cms->hash_function = (hash_function == NULL) ? __default_hash : hash_function;
+    fclose(fp);
+    return CMS_SUCCESS;
+}
+
 /*******************************************************************************
 *    PRIVATE FUNCTIONS
 *******************************************************************************/
@@ -167,6 +194,53 @@ static int __setup_cms(CountMinSketch *cms, int width, int depth, double error_r
     cms->hash_function = (hash_function == NULL) ? __default_hash : hash_function;
 
     return CMS_SUCCESS;
+}
+
+static void __write_to_file(CountMinSketch *cms, FILE *fp, short on_disk) {
+    unsigned long long i, length = cms->depth * cms->width;
+    if (on_disk == 0) {
+        for (i = 0; i < length; i++) {
+            fwrite(&cms->bins[i], sizeof(int), 1, fp);
+        }
+    } else {
+        // TODO: decide if this should be done directly on disk or not
+        // will need to write out everything by hand
+        uint64_t i;
+        int q = 0;
+        for (i = 0; i < length; i++) {
+            fwrite(&q, sizeof(int), 1, fp);
+        }
+    }
+    fwrite(&cms->width, sizeof(int), 1, fp);
+    fwrite(&cms->depth, sizeof(int), 1, fp);
+    fwrite(&cms->confidence, sizeof(double), 1, fp);
+    fwrite(&cms->error_rate, sizeof(double), 1, fp);
+    fwrite(&cms->elements_added, sizeof(long), 1, fp);
+}
+
+static void __read_from_file(CountMinSketch *cms, FILE *fp, short on_disk, char *filename) {
+    /* read in the values from the file before getting the sketch itself */
+    int offset = (sizeof(int) * 2) + (sizeof(double) * 2) + sizeof(long);
+    fseek(fp, offset * -1, SEEK_END);
+    size_t read;
+    read = fread(&cms->width, sizeof(int), 1, fp);
+    read = fread(&cms->depth, sizeof(int), 1, fp);
+    read = fread(&cms->confidence, sizeof(double), 1, fp);
+    read = fread(&cms->error_rate, sizeof(double), 1, fp);
+    read = fread(&cms->elements_added, sizeof(long), 1, fp);
+
+    rewind(fp);
+    long length = cms->width * cms->depth;
+    if (on_disk == 0) {
+        cms->bins = malloc(length * sizeof(int));
+        read = fread(cms->bins, sizeof(int), length, fp);
+        if (read != length) {
+            perror("__read_from_file: ");
+            exit(1);
+        }
+    } else {
+        // TODO: decide if this should be done directly on disk or not
+    }
 }
 
 static uint64_t* __default_hash(int num_hashes, char *key) {

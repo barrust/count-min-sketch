@@ -51,6 +51,14 @@ int cms_destroy(CountMinSketch *cms);
 /* Reset the count-min sketch to zero */
 int cms_clear(CountMinSketch *cms);
 
+/* Export count-min sketch to file */
+int cms_export(CountMinSketch *cms, char* filepath);
+
+int cms_import_alt(CountMinSketch *cms, char* filepath, cms_hash_function hash_function);
+static __inline__ int cms_import(CountMinSketch *cms, char* filepath) {
+    return cms_import_alt(cms, filepath, NULL);
+}
+
 /* Add the provided key to the count-min sketch */
 int cms_add(CountMinSketch *cms, char* key);
 int cms_add_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);

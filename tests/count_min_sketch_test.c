@@ -83,6 +83,10 @@ int main(int argc, char** argv) {
     }
     success_or_failure(result);
 
+    printf("Count-Min Sketch: export: ");
+    result = cms_export(&cms, "./dist/test_export.cms");
+    success_or_failure(result);
+
     /* test remove */
     printf("Count-Min Sketch: check remove: ");
     result = 0;
@@ -131,6 +135,34 @@ int main(int argc, char** argv) {
         success_or_failure(1);
     }
 
+    cms_destroy(&cms);
+
+    printf("Count-Min Sketch: import: ");
+    result = 0;
+    result = cms_import(&cms, "./dist/test_export.cms");
+    success_or_failure(result);
+
+    printf("Count-Min Sketch: import values correct: ");
+    result = 0;
+    if (cms.width != 10000 && cms.depth != 7) {
+        result = 1;
+    } else if (cms.confidence < 0.992 && cms.error_rate < 0.000200) {
+        result = 1;
+    }
+    success_or_failure(result);
+
+    printf("Count-Min Sketch: after import check max insertions: ");
+    result = 0;
+    for (i = 0; i < 10; i++) {
+        char key[KEY_LEN] = {0};
+        sprintf(key, "%d", i);
+        res = cms_check_max(&cms, key);
+        if (res != 10) {
+            result = 1;
+            printf("Error with key=%s\ti=%d\tres=%d\n", key, i, res);
+        }
+    }
+    success_or_failure(result);
     cms_destroy(&cms);
 
     timing_end(&tm);
