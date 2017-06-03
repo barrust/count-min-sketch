@@ -160,7 +160,7 @@ int main(int argc, char** argv) {
         res = cms_check_min(&cms, key);
         if (res != 10) {
             result = 1;
-            printf("Error with key=%s\ti=%d\tres=%d\n", key, i, res);
+            // printf("Error with key=%s\ti=%d\tres=%d\n", key, i, res);
         }
     }
     success_or_failure(result);

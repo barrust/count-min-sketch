@@ -45,6 +45,8 @@ static __inline__ int cms_init_optimal(CountMinSketch *cms, float error_rate, fl
     return cms_init_optimal_alt(cms, error_rate, confidence, NULL);
 }
 
+// double cms_bias(CountMinSketch *cms);  // TODO: implement (?)
+
 /* Clean up memory used in the count-min sketch */
 int cms_destroy(CountMinSketch *cms);
 
@@ -86,6 +88,10 @@ static __inline__ int cms_check_min_alt(CountMinSketch *cms, uint64_t* hashes, i
     when removes are added and negatives are possible */
 int cms_check_mean(CountMinSketch *cms, char* key);
 int cms_check_mean_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);
+
+/* TODO: Implement */
+// int cms_check_mean_min(CountMinSketch *cms, char* key);
+// int cms_check_mean_min_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);
 
 /*  Return the hashes for the provided key based on the hashing function of
     the count-min sketch

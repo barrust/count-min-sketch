@@ -69,6 +69,7 @@ int cms_add_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
         if (cms->bins[bin] != INT_MAX) {
             cms->bins[bin]++;
         }
+        /* currently a standard min strategy */
         if (cms->bins[bin] < num_add) {
             num_add = cms->bins[bin];
         }
