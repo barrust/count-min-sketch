@@ -3,6 +3,8 @@
 ### Version 0.1.3
 * Updated tests
 * Added import / export functionality
+* Added mean-min lookup strategy
+    * NOTE: This means this can also be used as a **Count-Mean-Min Sketch**
 
 ### Version 0.1.2
 * Added ability to add, remove, and lookup elements based only on the hash array

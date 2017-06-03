@@ -90,8 +90,8 @@ int cms_check_mean(CountMinSketch *cms, char* key);
 int cms_check_mean_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);
 
 /* TODO: Implement */
-// int cms_check_mean_min(CountMinSketch *cms, char* key);
-// int cms_check_mean_min_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);
+int cms_check_mean_min(CountMinSketch *cms, char* key);
+int cms_check_mean_min_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);
 
 /*  Return the hashes for the provided key based on the hashing function of
     the count-min sketch

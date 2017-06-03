@@ -153,6 +153,30 @@ int cms_check_mean(CountMinSketch *cms, char* key) {
     return num_add;
 }
 
+int cms_check_mean_min_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
+    if (num_hashes < cms->depth) {
+        fprintf(stderr, "Inssufecient hashes to complete the mean-min lookup of the element to the count-min sketch!");
+        return CMS_ERROR;
+    }
+    int i, num_add = INT_MAX;
+    for (i = 0; i < cms->depth; i++) {
+        int bin = (hashes[i] % cms->width) + (i * cms->width);
+        int val = cms->bins[bin];
+        int mean_min = val - ((val - cms->bins[bin]) / (cms->width - 1));
+        if (mean_min < num_add) {
+            num_add = mean_min;
+        }
+    }
+    return num_add;
+}
+
+int cms_check_mean_min(CountMinSketch *cms, char* key) {
+    uint64_t* hashes = cms_get_hashes(cms, key);
+    int num_add = cms_check_mean_min_alt(cms, hashes, cms->depth);
+    free(hashes);
+    return num_add;
+}
+
 uint64_t* cms_get_hashes_alt(CountMinSketch *cms, int num_hashes, char* key) {
     return cms->hash_function(num_hashes, key);
 }

@@ -70,13 +70,27 @@ int main(int argc, char** argv) {
     success_or_failure(result);
 
     /* test mean check */
-    printf("Count-Min Sketch: check mean insertions: ");
+    printf("Count-Min Sketch: check number of insertions using mean strategy: ");
     result = 0;
     for (i = 0; i < 10; i++) {
         char key[KEY_LEN] = {0};
         sprintf(key, "%d", i);
         int error_rate = (10 + ceil(10 * cms.error_rate));
         res = cms_check_mean(&cms, key);
+        if (res < 10 || res > error_rate ) {
+            // printf("Error with key=%s\ti=%d\tres=%d\n", key, i, res);
+            result = 1;
+        }
+    }
+    success_or_failure(result);
+
+    printf("Count-Min Sketch: check number of insertions using mean-min strategy: ");
+    result = 0;
+    for (i = 0; i < 10; i++) {
+        char key[KEY_LEN] = {0};
+        sprintf(key, "%d", i);
+        int error_rate = (10 + ceil(10 * cms.error_rate));
+        res = cms_check_mean_min(&cms, key);
         if (res < 10 || res > error_rate ) {
             // printf("Error with key=%s\ti=%d\tres=%d\n", key, i, res);
             result = 1;
