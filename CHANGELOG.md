@@ -1,12 +1,15 @@
 ## Current Version
 
-### Version 0.1.2
-* Add ability to add, remove, and lookup elements based only on the hash array
-* Changed bin layout to be a single array of ints for easier import export
-* Fixed min-check misnomer since it is really checking the maximum number of
-insertions
-* Fix logical error with calculating maximum and mean insertion values
+### Version 0.1.3
+* Updated tests
+* Added import / export functionality
+* Added mean-min lookup strategy
+    * NOTE: This means this can also be used as a **Count-Mean-Min Sketch**
 
+### Version 0.1.2
+* Added ability to add, remove, and lookup elements based only on the hash array
+* Changed bin layout to be a single array of ints for easier import export
+* Fixed logical error with calculating maximum and mean insertion values
 
 ### Version 0.1.1
 * Ability to remove elements
