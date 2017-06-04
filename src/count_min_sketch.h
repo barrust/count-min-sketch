@@ -89,7 +89,6 @@ static __inline__ int cms_check_min_alt(CountMinSketch *cms, uint64_t* hashes, i
 int cms_check_mean(CountMinSketch *cms, char* key);
 int cms_check_mean_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);
 
-/* TODO: Implement */
 int cms_check_mean_min(CountMinSketch *cms, char* key);
 int cms_check_mean_min_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);
 

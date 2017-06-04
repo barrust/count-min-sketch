@@ -177,6 +177,13 @@ int cms_check_mean_min(CountMinSketch *cms, char* key) {
     return num_add;
 }
 
+int cms_check_mean(CountMinSketch *cms, char* key) {
+    uint64_t* hashes = cms_get_hashes(cms, key);
+    int num_add = cms_check_mean_alt(cms, hashes, cms->depth);
+    free(hashes);
+    return num_add;
+}
+
 uint64_t* cms_get_hashes_alt(CountMinSketch *cms, int num_hashes, char* key) {
     return cms->hash_function(num_hashes, key);
 }

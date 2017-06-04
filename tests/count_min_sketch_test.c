@@ -15,7 +15,6 @@
 void success_or_failure(int res);
 
 
-
 int main(int argc, char** argv) {
     printf("Testing Count-Min Sketch version %s\n\n", COUNT_MIN_SKETCH_VERSION);
     Timing tm;
@@ -25,6 +24,7 @@ int main(int argc, char** argv) {
     CountMinSketch cms;
     printf("Count-Min Sketch: Creation using defined width and depth: ");
     cms_init(&cms, 10000, 7);
+  
     if (cms.width == 10000 && cms.depth == 7) {
         success_or_failure(0);
     } else {

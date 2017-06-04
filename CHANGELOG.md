@@ -11,7 +11,6 @@
 * Changed bin layout to be a single array of ints for easier import export
 * Fixed logical error with calculating maximum and mean insertion values
 
-
 ### Version 0.1.1
 * Ability to remove elements
 * Mean based lookup
