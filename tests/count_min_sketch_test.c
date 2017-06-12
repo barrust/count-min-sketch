@@ -1,10 +1,14 @@
 
 #include <stdio.h>
+#include <string.h>
 #include <math.h>
 #include "timing.h"
 #include "../src/count_min_sketch.h"
 
 #define KEY_LEN 5
+
+#define TEST_DEPTH 100
+#define TEST_WIDTH 100000
 
 #define KNRM  "\x1B[0m"
 #define KRED  "\x1B[31m"
@@ -24,7 +28,7 @@ int main(int argc, char** argv) {
     CountMinSketch cms;
     printf("Count-Min Sketch: Creation using defined width and depth: ");
     cms_init(&cms, 10000, 7);
-  
+
     if (cms.width == 10000 && cms.depth == 7) {
         success_or_failure(0);
     } else {
@@ -41,28 +45,37 @@ int main(int argc, char** argv) {
     printf("Count-Min Sketch: insertion: ");
     int i, j, res;
     result = 0;
-    for (i = 0; i < 10; i++) {
-        for (j = 1; j <= 10; j++) {
-            char key[KEY_LEN] = {0};
-            sprintf(key, "%d", i);
+    for (i = 0; i < TEST_DEPTH; i++) {
+        char key[KEY_LEN] = {0};
+        sprintf(key, "%d", i);
+        // uint64_t* hashes = cms_get_hashes(&cms, key);
+        for (j = 1; j <= TEST_WIDTH; j++) {
+            // res = cms_add_alt(&cms, hashes, cms.depth);
             res = cms_add(&cms, key);
             if (res != j) {
                 result = 1;
                 // printf("Error with key=%s\ti=%d\tres=%d\n", key, i, res);
             }
         }
+        // free(hashes);
     }
     success_or_failure(result);
 
+    printf("Count-Min Sketch: insertion total (%lu): ", cms.elements_added);
+    if (cms.elements_added == TEST_DEPTH * TEST_WIDTH) {
+        success_or_failure(0);
+    } else {
+        success_or_failure(1);
+    }
 
     /* test max check */
     printf("Count-Min Sketch: check number of insertions using min strategy: ");
     result = 0;
-    for (i = 0; i < 10; i++) {
+    for (i = 0; i < TEST_DEPTH; i++) {
         char key[KEY_LEN] = {0};
         sprintf(key, "%d", i);
         res = cms_check_min(&cms, key);
-        if (res != 10) {
+        if (res != TEST_WIDTH) {
             result = 1;
             // printf("Error with key=%s\ti=%d\tres=%d\n", key, i, res);
         }
@@ -72,13 +85,13 @@ int main(int argc, char** argv) {
     /* test mean check */
     printf("Count-Min Sketch: check number of insertions using mean strategy: ");
     result = 0;
-    for (i = 0; i < 10; i++) {
+    for (i = 0; i < TEST_DEPTH; i++) {
         char key[KEY_LEN] = {0};
         sprintf(key, "%d", i);
-        int error_rate = (10 + ceil(10 * cms.error_rate));
+        int error_rate = (TEST_WIDTH + ceil(TEST_WIDTH * cms.error_rate));
         res = cms_check_mean(&cms, key);
-        if (res < 10 || res > error_rate ) {
-            // printf("Error with key=%s\ti=%d\tres=%d\n", key, i, res);
+        if (res < TEST_WIDTH || res > error_rate ) {
+            printf("Error with key=%s\ti=%d\tres=%d, error_rate=%d\n", key, i, res, error_rate);
             result = 1;
         }
     }
@@ -86,12 +99,12 @@ int main(int argc, char** argv) {
 
     printf("Count-Min Sketch: check number of insertions using mean-min strategy: ");
     result = 0;
-    for (i = 0; i < 10; i++) {
+    for (i = 0; i < TEST_DEPTH; i++) {
         char key[KEY_LEN] = {0};
         sprintf(key, "%d", i);
-        int error_rate = (10 + ceil(10 * cms.error_rate));
+        int error_rate = (TEST_WIDTH + ceil(10 * cms.error_rate));
         res = cms_check_mean_min(&cms, key);
-        if (res < 10 || res > error_rate ) {
+        if (res < TEST_WIDTH || res > error_rate ) {
             // printf("Error with key=%s\ti=%d\tres=%d\n", key, i, res);
             result = 1;
         }
@@ -105,10 +118,10 @@ int main(int argc, char** argv) {
     /* test remove */
     printf("Count-Min Sketch: check remove: ");
     result = 0;
-    for (i = 0; i < 10; i++) {
-        for (j = 10; j > 0; j--) {
-            char key[KEY_LEN] = {0};
-            sprintf(key, "%d", i);
+    for (i = 0; i < TEST_DEPTH; i++) {
+        char key[KEY_LEN] = {0};
+        sprintf(key, "%d", i);
+        for (j = TEST_WIDTH; j > 0; j--) {
             res = cms_remove(&cms, key);
             if (res != j - 1) {
                 result = 1;
@@ -168,11 +181,11 @@ int main(int argc, char** argv) {
 
     printf("Count-Min Sketch: after import check max number of insertions using the min strategy: ");
     result = 0;
-    for (i = 0; i < 10; i++) {
+    for (i = 0; i < TEST_DEPTH; i++) {
         char key[KEY_LEN] = {0};
         sprintf(key, "%d", i);
         res = cms_check_min(&cms, key);
-        if (res != 10) {
+        if (res != TEST_WIDTH) {
             result = 1;
             // printf("Error with key=%s\ti=%d\tres=%d\n", key, i, res);
         }

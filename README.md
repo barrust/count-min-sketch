@@ -43,7 +43,6 @@ error and confidence
 
 ## Future Enhancements
 * add method to calculate the possible bias
-* add check where bias is taken into account
 * add do everything directly on disk (?)
 * add import / export to hex (?)
 

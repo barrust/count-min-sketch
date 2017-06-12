@@ -60,7 +60,7 @@ int cms_clear(CountMinSketch *cms) {
 
 int cms_add_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
     if (num_hashes < cms->depth) {
-        fprintf(stderr, "Inssufecient hashes to complete the addition of the element to the count-min sketch!");
+        fprintf(stderr, "Insufficient hashes to complete the addition of the element to the count-min sketch!");
         return CMS_ERROR;
     }
     int i, num_add = INT_MAX;
@@ -87,7 +87,7 @@ int cms_add(CountMinSketch *cms, char* key) {
 
 int cms_remove_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
     if (num_hashes < cms->depth) {
-        fprintf(stderr, "Inssufecient hashes to complete the removal of the element to the count-min sketch!");
+        fprintf(stderr, "Insufficient hashes to complete the removal of the element to the count-min sketch!");
         return CMS_ERROR;
     }
     int i, num_add = INT_MAX;
@@ -113,7 +113,7 @@ int cms_remove(CountMinSketch *cms, char* key) {
 
 int cms_check_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
     if (num_hashes < cms->depth) {
-        fprintf(stderr, "Inssufecient hashes to complete the min lookup of the element to the count-min sketch!");
+        fprintf(stderr, "Insufficient hashes to complete the min lookup of the element to the count-min sketch!");
         return CMS_ERROR;
     }
     int i, num_add = INT_MAX;
@@ -135,7 +135,7 @@ int cms_check(CountMinSketch *cms, char* key) {
 
 int cms_check_mean_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
     if (num_hashes < cms->depth) {
-        fprintf(stderr, "Inssufecient hashes to complete the mean lookup of the element to the count-min sketch!");
+        fprintf(stderr, "Insufficient hashes to complete the mean lookup of the element to the count-min sketch!");
         return CMS_ERROR;
     }
     int i, num_add = 0;
@@ -155,7 +155,7 @@ int cms_check_mean(CountMinSketch *cms, char* key) {
 
 int cms_check_mean_min_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
     if (num_hashes < cms->depth) {
-        fprintf(stderr, "Inssufecient hashes to complete the mean-min lookup of the element to the count-min sketch!");
+        fprintf(stderr, "Insufficient hashes to complete the mean-min lookup of the element to the count-min sketch!");
         return CMS_ERROR;
     }
     int i, num_add = INT_MAX;
