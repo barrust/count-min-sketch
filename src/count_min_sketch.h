@@ -63,16 +63,20 @@ static __inline__ int cms_import(CountMinSketch *cms, char* filepath) {
     return cms_import_alt(cms, filepath, NULL);
 }
 
-/* Add the provided key to the count-min sketch */
-int cms_add(CountMinSketch *cms, char* key);
-int cms_add_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);
-
 /* Add the provided key to the count-min sketch `x` times */
 int cms_add_inc(CountMinSketch *cms, char* key, unsigned int x);
 int cms_add_inc_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes, unsigned int x);
 
+/* Add the provided key to the count-min sketch */
+static __inline__ int cms_add(CountMinSketch *cms, char* key) {
+    return cms_add_inc(cms, key, 1);
+}
+static __inline__ int cms_add_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
+    return cms_add_inc_alt(cms, hashes, num_hashes, 1);
+}
+
 /*  Remove the provided key to the count-min sketch;
-    NOTE: Values can be negative
+    NOTE: Result Values can be negative
     NOTE: Best check method when remove is used is `cms_check_mean` */
 int cms_remove(CountMinSketch *cms, char* key);
 int cms_remove_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);

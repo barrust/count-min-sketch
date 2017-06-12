@@ -58,33 +58,6 @@ int cms_clear(CountMinSketch *cms) {
     return CMS_SUCCESS;
 }
 
-int cms_add_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
-    if (num_hashes < cms->depth) {
-        fprintf(stderr, "Insufficient hashes to complete the addition of the element to the count-min sketch!");
-        return CMS_ERROR;
-    }
-    int i, num_add = INT_MAX;
-    for (i = 0; i < cms->depth; i++) {
-        int bin = (hashes[i] % cms->width) + (i * cms->width);
-        if (cms->bins[bin] != INT_MAX) {
-            cms->bins[bin]++;
-        }
-        /* currently a standard min strategy */
-        if (cms->bins[bin] < num_add) {
-            num_add = cms->bins[bin];
-        }
-    }
-    cms->elements_added++;
-    return num_add;
-}
-
-int cms_add(CountMinSketch *cms, char* key) {
-    uint64_t* hashes = cms_get_hashes(cms, key);
-    int num_add = cms_add_alt(cms, hashes, cms->depth);
-    free(hashes);
-    return num_add;
-}
-
 int cms_add_inc_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes, unsigned int x) {
     if (num_hashes < cms->depth) {
         fprintf(stderr, "Insufficient hashes to complete the addition of the element to the count-min sketch!");

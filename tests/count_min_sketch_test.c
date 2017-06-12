@@ -44,6 +44,7 @@ int main(int argc, char** argv) {
     }
 
     printf("Count-Min Sketch: insertion: ");
+    fflush(stdout);
     int i, j, res;
     result = 0;
     for (i = 0; i < TEST_DEPTH; i++) {
@@ -92,7 +93,7 @@ int main(int argc, char** argv) {
         int error_rate = (TEST_WIDTH + ceil(TEST_WIDTH * TEST_MEAN_ERROR));
         res = cms_check_mean(&cms, key);
         if (res < TEST_WIDTH || res > error_rate ) {
-            printf("Error with key=%s\ti=%d\tres=%d, error_rate=%d\n", key, i, res, error_rate);
+            // printf("Error with key=%s\ti=%d\tres=%d, error_rate=%d\n", key, i, res, error_rate);
             result = 1;
         }
     }
@@ -118,6 +119,7 @@ int main(int argc, char** argv) {
 
     /* test remove */
     printf("Count-Min Sketch: check remove: ");
+    fflush(stdout);
     result = 0;
     for (i = 0; i < TEST_DEPTH; i++) {
         char key[KEY_LEN] = {0};
