@@ -4,14 +4,14 @@
 /*******************************************************************************
 ***     Author: Tyler Barrus
 ***     email:  barrust@gmail.com
-***     Version: 0.1.3
+***     Version: 0.1.4
 ***     License: MIT 2017
 *******************************************************************************/
 
 #include <inttypes.h>       /* PRIu64 */
 #include <limits.h>         /* INT_MIN */
 
-#define COUNT_MIN_SKETCH_VERSION "0.1.3"
+#define COUNT_MIN_SKETCH_VERSION "0.1.4"
 
 /* https://gcc.gnu.org/onlinedocs/gcc/Alternate-Keywords.html#Alternate-Keywords */
 #ifndef __GNUC__
@@ -66,6 +66,10 @@ static __inline__ int cms_import(CountMinSketch *cms, char* filepath) {
 /* Add the provided key to the count-min sketch */
 int cms_add(CountMinSketch *cms, char* key);
 int cms_add_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);
+
+/* Add the provided key to the count-min sketch `x` times */
+int cms_add_inc(CountMinSketch *cms, char* key, unsigned int x);
+int cms_add_inc_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes, unsigned int x);
 
 /*  Remove the provided key to the count-min sketch;
     NOTE: Values can be negative

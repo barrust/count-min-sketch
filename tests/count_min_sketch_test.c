@@ -9,6 +9,7 @@
 
 #define TEST_DEPTH 100
 #define TEST_WIDTH 100000
+#define TEST_MEAN_ERROR 0.15
 
 #define KNRM  "\x1B[0m"
 #define KRED  "\x1B[31m"
@@ -88,7 +89,7 @@ int main(int argc, char** argv) {
     for (i = 0; i < TEST_DEPTH; i++) {
         char key[KEY_LEN] = {0};
         sprintf(key, "%d", i);
-        int error_rate = (TEST_WIDTH + ceil(TEST_WIDTH * cms.error_rate));
+        int error_rate = (TEST_WIDTH + ceil(TEST_WIDTH * TEST_MEAN_ERROR));
         res = cms_check_mean(&cms, key);
         if (res < TEST_WIDTH || res > error_rate ) {
             printf("Error with key=%s\ti=%d\tres=%d, error_rate=%d\n", key, i, res, error_rate);
@@ -102,7 +103,7 @@ int main(int argc, char** argv) {
     for (i = 0; i < TEST_DEPTH; i++) {
         char key[KEY_LEN] = {0};
         sprintf(key, "%d", i);
-        int error_rate = (TEST_WIDTH + ceil(10 * cms.error_rate));
+        int error_rate = (TEST_WIDTH + ceil(TEST_DEPTH * cms.error_rate));
         res = cms_check_mean_min(&cms, key);
         if (res < TEST_WIDTH || res > error_rate ) {
             // printf("Error with key=%s\ti=%d\tres=%d\n", key, i, res);
