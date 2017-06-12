@@ -75,11 +75,21 @@ static __inline__ int cms_add_alt(CountMinSketch *cms, uint64_t* hashes, int num
     return cms_add_inc_alt(cms, hashes, num_hashes, 1);
 }
 
+/*  Remove the provided key to the count-min sketch `x` times;
+    NOTE: Result Values can be negative
+    NOTE: Best check method when remove is used is `cms_check_mean` */
+int cms_remove_inc(CountMinSketch *cms, char* key, unsigned int x);
+int cms_remove_inc_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes, unsigned int x);
+
 /*  Remove the provided key to the count-min sketch;
     NOTE: Result Values can be negative
     NOTE: Best check method when remove is used is `cms_check_mean` */
-int cms_remove(CountMinSketch *cms, char* key);
-int cms_remove_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes);
+static __inline__ int cms_remove(CountMinSketch *cms, char* key) {
+    return cms_remove_inc(cms, key, 1);
+}
+static __inline__ int cms_remove_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes) {
+    return cms_remove_inc_alt(cms, hashes, num_hashes, 1);
+}
 
 /* Determine the maximum number of times the key may have been inserted */
 int cms_check(CountMinSketch *cms, char* key);

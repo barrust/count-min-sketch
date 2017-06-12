@@ -31,6 +31,8 @@ read [this link](https://highlyscalable.wordpress.com/2012/05/01/probabilistic-s
 
 ## Main Features:
 * Ability to add and remove elements from the Count-Min Sketch
+    * Increment or add `x` elements at once
+    * Decrement or remove `x` elements at once
 * Ability to lookup elements in the data-structure
 * Add, remove, or lookup elements based on pre-calculated hashes
 * Ability to set depth & width or have the library calculate them based on
