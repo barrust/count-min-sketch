@@ -38,9 +38,12 @@ read [this link](https://highlyscalable.wordpress.com/2012/05/01/probabilistic-s
 * Ability to set depth & width or have the library calculate them based on
 error and confidence
 * Multiple lookup types:
-    * Maximum (largest possible number of insertions)
-    * Mean (good for when removes and negatives are possible, but increases
-        the false count upwards)
+    * ***Minimum:*** largest possible number of insertions by taking the
+    maximum result 
+    * ***Mean:*** good for when removes and negatives are possible, but
+    increases the false count
+    * ***Mean-Min*** attempts to take bias into account; results are less
+    skewed upwards compared to the mean lookup
 * Export and Import count-min sketch to file
 
 ## Future Enhancements
