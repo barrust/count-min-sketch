@@ -21,6 +21,7 @@ static void __write_to_file(CountMinSketch *cms, FILE *fp, short on_disk);
 static void __read_from_file(CountMinSketch *cms, FILE *fp, short on_disk, char *filename);
 static uint64_t* __default_hash(int num_hashes, char *key);
 static uint64_t __fnv_1a(char *key);
+int __compare (const void * a, const void * b);
 
 
 
@@ -158,15 +159,22 @@ int cms_check_mean_min_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes
         fprintf(stderr, "Insufficient hashes to complete the mean-min lookup of the element to the count-min sketch!");
         return CMS_ERROR;
     }
-    int i, num_add = INT_MAX;
+    int i, num_add = 0;
+    long* mean_min_values = calloc(cms->depth, sizeof(long));
     for (i = 0; i < cms->depth; i++) {
         int bin = (hashes[i] % cms->width) + (i * cms->width);
         int val = cms->bins[bin];
-        int mean_min = val - ((val - cms->bins[bin]) / (cms->width - 1));
-        if (mean_min < num_add) {
-            num_add = mean_min;
-        }
+        mean_min_values[i] = val - ((cms->elements_added - val) / (cms->width - 1));
     }
+    // return the median of the mean_min_value array... need to sort first
+    qsort(mean_min_values, cms->depth, sizeof(long), __compare);
+    int n = cms->depth;
+    if (n % 2 == 0) {
+        num_add = (mean_min_values[n/2] + mean_min_values[n/2 - 1]) / 2;
+    } else {
+        num_add = mean_min_values[n/2];
+    }
+    free(mean_min_values);
     return num_add;
 }
 
@@ -295,4 +303,9 @@ static uint64_t __fnv_1a(char *key) {
             h = h * 1099511628211ULL; // FNV_PRIME 64 bit
     }
     return h;
+}
+
+
+int __compare (const void * a, const void * b) {
+  return ( *(long*)a - *(long*)b );
 }

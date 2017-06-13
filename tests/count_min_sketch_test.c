@@ -106,7 +106,7 @@ int main(int argc, char** argv) {
         sprintf(key, "%d", i);
         int error_rate = (TEST_WIDTH + ceil(TEST_DEPTH * cms.error_rate));
         res = cms_check_mean_min(&cms, key);
-        if (res < TEST_WIDTH || res > error_rate ) {
+        if (res > TEST_WIDTH) {
             // printf("Error with key=%s\ti=%d\tres=%d\n", key, i, res);
             result = 1;
         }

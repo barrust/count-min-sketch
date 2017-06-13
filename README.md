@@ -21,7 +21,7 @@ data. One is to use the mean of the results. This will result in larger answers,
 but is useful when elements can be removed from the count-min sketch.
 
 The other option is to use the count-mean-min query strategy. This strategy
-attempts to remove the bias by taking the minimum value from the result of the
+attempts to remove the bias by taking the median value from the results of the
 following calculation of each row (where `i` is the bin result of the hash):
 `bin[i] - ((number-elements - bin[i]) / (width - 1))`
 
@@ -39,7 +39,7 @@ read [this link](https://highlyscalable.wordpress.com/2012/05/01/probabilistic-s
 error and confidence
 * Multiple lookup types:
     * ***Minimum:*** largest possible number of insertions by taking the
-    maximum result 
+    maximum result
     * ***Mean:*** good for when removes and negatives are possible, but
     increases the false count
     * ***Mean-Min*** attempts to take bias into account; results are less
@@ -47,6 +47,7 @@ error and confidence
 * Export and Import count-min sketch to file
 
 ## Future Enhancements
+* add python version (binary compatible file outputs)
 * add method to calculate the possible bias
 * add do everything directly on disk (?)
 * add import / export to hex (?)
