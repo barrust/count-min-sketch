@@ -239,28 +239,26 @@ static void __write_to_file(CountMinSketch *cms, FILE *fp, short on_disk) {
     } else {
         // TODO: decide if this should be done directly on disk or not
         // will need to write out everything by hand
-        uint64_t i;
-        int q = 0;
-        for (i = 0; i < length; i++) {
-            fwrite(&q, sizeof(int), 1, fp);
-        }
+        // uint64_t i;
+        // int q = 0;
+        // for (i = 0; i < length; i++) {
+        //     fwrite(&q, sizeof(int), 1, fp);
+        // }
     }
     fwrite(&cms->width, sizeof(int), 1, fp);
     fwrite(&cms->depth, sizeof(int), 1, fp);
-    fwrite(&cms->confidence, sizeof(double), 1, fp);
-    fwrite(&cms->error_rate, sizeof(double), 1, fp);
     fwrite(&cms->elements_added, sizeof(long), 1, fp);
 }
 
 static void __read_from_file(CountMinSketch *cms, FILE *fp, short on_disk, char *filename) {
     /* read in the values from the file before getting the sketch itself */
-    int offset = (sizeof(int) * 2) + (sizeof(double) * 2) + sizeof(long);
+    int offset = (sizeof(int) * 2) + sizeof(long);
     fseek(fp, offset * -1, SEEK_END);
     size_t read;
     read = fread(&cms->width, sizeof(int), 1, fp);
     read = fread(&cms->depth, sizeof(int), 1, fp);
-    read = fread(&cms->confidence, sizeof(double), 1, fp);
-    read = fread(&cms->error_rate, sizeof(double), 1, fp);
+    cms->confidence = 1 - (1 / pow(2, cms->depth));
+    cms->error_rate = 2 / (double) cms->width;
     read = fread(&cms->elements_added, sizeof(long), 1, fp);
 
     rewind(fp);

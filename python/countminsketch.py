@@ -4,6 +4,8 @@ Count-Min Sketch python implementation
 # MIT License
 # Author: Tyler Barrus (barrust@gmail.com)
 import sys
+import struct
+import math
 
 class CountMinSketch(object):
     ''' Count-Min Sketch class '''
@@ -12,11 +14,11 @@ class CountMinSketch(object):
         if width is not None and depth is not None:
             self._width = width
             self._depth = depth
-            self._confidence = confidence
-            self._error_rate = error_rate
-        elif confidence is not None and error_rate is not None:
             self._confidence = 1 - (1 / math.pow(2, depth))
             self._error_rate = 2 / width
+        elif confidence is not None and error_rate is not None:
+            self._confidence = confidence
+            self._error_rate = error_rate
             self._width = math.ceil(2 / error_rate)
             self._depth = math.ceil((-1 * math.log(1 - confidence)) / 0.6931471805599453);
         else:
@@ -88,7 +90,14 @@ class CountMinSketch(object):
 
     def export(self, filepath):
         ''' export the count-min sketch to file '''
-        pass
+        with open(filepath, 'wb') as fp:
+            # write out the bins
+            for bn in self._bins:
+                fp.write(struct.pack('i', bn))
+            # write the other pieces of information...
+            fp.write(struct.pack('I', self._width))
+            fp.write(struct.pack('I', self._depth))
+            fp.write(struct.pack('l', self._elements_added))
 
     def load(self, filepath):
         ''' load the count-min sketch from file '''
@@ -132,3 +141,5 @@ if __name__ == '__main__':
     print cms.check(str(0), 'min')
     print cms.check(str(0), 'mean')
     print cms.check(str(0), 'mean-min')
+    print cms._elements_added, cms._width, cms._depth, cms._confidence
+    cms.export('./dist/py_test.cms')

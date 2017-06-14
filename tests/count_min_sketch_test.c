@@ -184,6 +184,9 @@ int main(int argc, char** argv) {
     }
     success_or_failure(result);
 
+    printf("cms->confidence: %f\n", cms.confidence);
+    result = cms_export(&cms, "./dist/c_test.cms");
+
     printf("Count-Min Sketch: destroy: ");
     result = 0;
     cms_destroy(&cms);
@@ -219,8 +222,10 @@ int main(int argc, char** argv) {
     printf("Count-Min Sketch: import values correct: ");
     result = 0;
     if (cms.width != 100000 && cms.depth != 7) {
+        printf("width: %d\tdepth: %d\n", cms.width, cms.depth);
         result = 1;
     } else if (cms.confidence < 0.992 && cms.error_rate < 0.000200) {
+        printf("confidence: %f\terror rate: %f\n", cms.confidence, cms.error_rate);
         result = 1;
     }
     success_or_failure(result);
