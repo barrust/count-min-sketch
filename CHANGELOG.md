@@ -1,5 +1,11 @@
 ## Current Version
 
+### Version 0.1.4
+* Fix mean-min query calculation
+* Add and remove same element `x` times at once
+* Minor code cleanup
+* Added additional tests
+
 ### Version 0.1.3
 * Updated tests
 * Added import / export functionality

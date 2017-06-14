@@ -9,7 +9,8 @@
 
 #define TEST_DEPTH 100
 #define TEST_WIDTH 100000
-#define TEST_MEAN_ERROR 0.15
+#define TEST_MEAN_ERROR 0.015
+#define TEST_MEAN_MIN_ERROR_MAX 5
 
 #define KNRM  "\x1B[0m"
 #define KRED  "\x1B[31m"
@@ -28,18 +29,20 @@ int main(int argc, char** argv) {
 
     CountMinSketch cms;
     printf("Count-Min Sketch: Creation using defined width and depth: ");
-    cms_init(&cms, 10000, 7);
+    cms_init(&cms, 100000, 7);
 
-    if (cms.width == 10000 && cms.depth == 7) {
+    if (cms.width == 100000 && cms.depth == 7) {
         success_or_failure(0);
     } else {
+        // printf("width: %d\tdepth: %d\n", cms.width, cms.depth);
         success_or_failure(1);
     }
 
     printf("Count-Min Sketch: auto set confidence and error rate: ");
-    if (cms.confidence >= 0.992 && cms.error_rate >= 0.000200) {
+    if (cms.confidence >= 0.9920 && cms.error_rate >= 0.000020) {
         success_or_failure(0);
     } else {
+        // printf("confidence: %f\terror rate: %f\n", cms.confidence, cms.error_rate);
         success_or_failure(1);
     }
 
@@ -99,14 +102,14 @@ int main(int argc, char** argv) {
     }
     success_or_failure(result);
 
-    printf("Count-Min Sketch: check number of insertions using mean-min strategy: ");
+    printf("Count-Min Sketch: check number of insertions using mean-min strategy (similar values): ");
     result = 0;
     for (i = 0; i < TEST_DEPTH; i++) {
         char key[KEY_LEN] = {0};
         sprintf(key, "%d", i);
-        int error_rate = (TEST_WIDTH + ceil(TEST_DEPTH * cms.error_rate));
+        int error_rate = TEST_WIDTH * TEST_MEAN_ERROR;
         res = cms_check_mean_min(&cms, key);
-        if (res > TEST_WIDTH) {
+        if (res >= TEST_WIDTH + error_rate || res <= TEST_WIDTH - error_rate) {
             // printf("Error with key=%s\ti=%d\tres=%d\n", key, i, res);
             result = 1;
         }
@@ -140,6 +143,47 @@ int main(int argc, char** argv) {
     }
     success_or_failure(result);
 
+    // test clear
+    printf("Count-Min Sketch: clear: ");
+    result = 0;
+    cms_clear(&cms);
+    for (i = 0; i < cms.depth * cms.width; i++) {
+        if (cms.bins[i] != 0) {
+            result = 1;
+        }
+    }
+    if (cms.elements_added != 0) {
+        result = 1;
+    }
+    success_or_failure(result);
+
+    printf("Count-Min Sketch: insertions using mean-min strategy (diverse values): ");
+    result = 0;
+    for (i = 0; i < TEST_DEPTH; i++) {
+        char key[KEY_LEN] = {0};
+        sprintf(key, "%d", i);
+        int t = TEST_DEPTH * (i + 1);
+        res = cms_add_inc(&cms, key, t);
+        if (res != t) {
+            result = 1;
+        }
+    }
+    success_or_failure(result);
+
+    printf("Count-Min Sketch: check number of insertions using mean-min strategy (diverse values): ");
+    result = 0;
+    for (i = 0; i < TEST_DEPTH; i++) {
+        char key[KEY_LEN] = {0};
+        sprintf(key, "%d", i);
+        int t = TEST_DEPTH * (i + 1);
+        res = cms_check_mean_min(&cms, key);
+        if (res > t + TEST_MEAN_MIN_ERROR_MAX || res < t - TEST_MEAN_MIN_ERROR_MAX) {
+            // printf("i: %d\tt: %d\tres: %d\terr: %d\n", i, t, res, TEST_MEAN_MIN_ERROR_MAX);
+            result = 1;
+        }
+    }
+    success_or_failure(result);
+
     printf("Count-Min Sketch: destroy: ");
     result = 0;
     cms_destroy(&cms);
@@ -149,7 +193,6 @@ int main(int argc, char** argv) {
         result = 1;
     }
     success_or_failure(result);
-
 
     printf("Count-Min Sketch: setup using confidence and error rate: ");
     cms_init_optimal(&cms, 0.001, 0.99999);
@@ -175,7 +218,7 @@ int main(int argc, char** argv) {
 
     printf("Count-Min Sketch: import values correct: ");
     result = 0;
-    if (cms.width != 10000 && cms.depth != 7) {
+    if (cms.width != 100000 && cms.depth != 7) {
         result = 1;
     } else if (cms.confidence < 0.992 && cms.error_rate < 0.000200) {
         result = 1;

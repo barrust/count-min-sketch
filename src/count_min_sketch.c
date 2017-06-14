@@ -46,6 +46,7 @@ int cms_destroy(CountMinSketch *cms) {
     cms->error_rate = 0.0;
     cms->elements_added = 0;
     cms->hash_function = NULL;
+    cms->bins = NULL;
 
     return CMS_SUCCESS;
 }
