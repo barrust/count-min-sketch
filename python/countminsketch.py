@@ -3,38 +3,40 @@ Count-Min Sketch python implementation
 '''
 # MIT License
 # Author: Tyler Barrus (barrust@gmail.com)
-import sys
+import sys, os
 import struct
 import math
 
 class CountMinSketch(object):
     ''' Count-Min Sketch class '''
-    def __init__(self, width=None, depth=None, confidence=None, error_rate=None, hash_function=None):
+    def __init__(self, width=None, depth=None, confidence=None, error_rate=None, filepath=None, hash_function=None):
         ''' default initilization function '''
+        # default values
+        self._width = 0
+        self._depth = 0
+        self._confidence = 0.0
+        self._error_rate = 0.0
+        self._elements_added = 0
+
         if width is not None and depth is not None:
             self._width = width
             self._depth = depth
             self._confidence = 1 - (1 / math.pow(2, depth))
             self._error_rate = 2 / width
+            self._bins = [0] * (self._width * self._depth)
         elif confidence is not None and error_rate is not None:
             self._confidence = confidence
             self._error_rate = error_rate
             self._width = math.ceil(2 / error_rate)
             self._depth = math.ceil((-1 * math.log(1 - confidence)) / 0.6931471805599453);
-        else:
-            self._width = 0
-            self._depth = 0
-            self._confidence = 0.0
-            self._error_rate = 0.0
+            self._bins = [0] * (self._width * self._depth)
+        elif filepath is not None:
+            self.load(filepath, hash_function)
 
         if hash_function is None:
             self._hash_function = self.__default_hash
         else:
             self._hash_function = hash_function
-
-        self._elements_added = 0
-        self._bins = [0] * (self._width * self._depth)
-
 
     def clear(self):
         ''' reset the count-min sketch to empty '''
@@ -99,9 +101,33 @@ class CountMinSketch(object):
             fp.write(struct.pack('I', self._depth))
             fp.write(struct.pack('l', self._elements_added))
 
-    def load(self, filepath):
+    def load(self, filepath, hash_function=None):
         ''' load the count-min sketch from file '''
-        pass
+        with open(filepath, 'rb') as fp:
+            offset = struct.calcsize('IIl')
+            fp.seek(offset * -1, os.SEEK_END)
+            mybytes = struct.unpack('IIl', fp.read(offset))
+            # print mybytes
+            self._width = mybytes[0]
+            self._depth = mybytes[1]
+            self._elements_added = mybytes[2]
+            self._confidence = 1 - (1 / math.pow(2, self._depth))
+            self._error_rate = 2 / self._width
+
+            fp.seek(0, os.SEEK_SET)
+            length = self._width * self._depth
+            self._bins = [0] * length
+            j = 0
+            q = 0
+            for i in range(0, length):
+                val = struct.unpack('i', fp.read(4))[0]
+                if int(val) != 0:
+                    self._bins[i] = int(val)
+
+        if hash_function is None:
+            self._hash_function = self.__default_hash
+        else:
+            self._hash_function = hash_function
 
     def __default_hash(self, key, depth):
         ''' the default fnv-1a hashing routine '''
@@ -134,12 +160,25 @@ class CountMinSketch(object):
         return bins
 
 if __name__ == '__main__':
-    cms = CountMinSketch(width=100000, depth=7)
-    for i in range(0, 100):
-        t = 100 * (i + 1);
-        cms.add(str(i), t)
-    print cms.check(str(0), 'min')
-    print cms.check(str(0), 'mean')
-    print cms.check(str(0), 'mean-min')
-    print cms._elements_added, cms._width, cms._depth, cms._confidence
-    cms.export('./dist/py_test.cms')
+    # cms = CountMinSketch(width=100000, depth=7)
+    cmsf = CountMinSketch(filepath='./dist/test_export.cms')
+    # if cms._width != cmsf._width:
+    #     print 'width does not match!'
+    # if cms._depth != cmsf._depth:
+    #     print 'depth does not match!'
+    # length = cmsf._width * cmsf._depth
+    # print cmsf._bins
+    # for bn in cmsf._bins:
+    #     # print bn
+    #     # print cms._bins[i]
+    #     if bn != 0:
+    #         print bn
+    # for i in range(0, 100):
+    #     t = 100 * (i + 1);
+    #     cms.add(str(i), t)
+    print cmsf.check(str(0), 'min')
+    # print cms.check(str(0), 'mean')
+    # print cms.check(str(0), 'mean-min')
+    # print cms._elements_added, cms._width, cms._depth, cms._confidence
+    # cms.export('./dist/py_test.cms')
+    # cms.load('./dist/py_test.cms')

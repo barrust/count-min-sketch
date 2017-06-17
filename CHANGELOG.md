@@ -3,6 +3,10 @@
 ### Version 0.1.4
 * Fix mean-min query calculation
 * Add and remove same element `x` times at once
+* ***python*** implementation
+    * Add and remove
+    * Export (Binary compatible with the C implementation)
+    * Load saved count-min sketch
 * Minor code cleanup
 * Added additional tests
 
