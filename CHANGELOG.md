@@ -7,6 +7,7 @@
     * Add and remove
     * Export (Binary compatible with the C implementation)
     * Load saved count-min sketch
+    * Alternate add, remove, and check functions
 * Minor code cleanup
 * Added additional tests
 

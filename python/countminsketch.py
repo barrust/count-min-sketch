@@ -46,8 +46,11 @@ class CountMinSketch(object):
 
     def add(self, key, x=1):
         ''' add element 'key' to the count-min sketch 'x' times '''
-        res = sys.maxint
         hashes = self._hash_function(key, self._depth)
+        return self.add_alt(hashes, x)
+
+    def add_alt(self, hashes, x=1):
+        res = sys.maxint
         for i, val in enumerate(hashes):
             t_bin = (val % self._width) + (i * self._width)
             self._bins[t_bin] += x
@@ -58,8 +61,11 @@ class CountMinSketch(object):
 
     def remove(self, key, x=1):
         ''' remove element 'key' from the count-min sketch 'x' times '''
-        res = sys.maxint
         hashes = self._hash_function(key, self._depth)
+        return remove_alt(hashes, x)
+
+    def remove_alt(self, hashes, x=1):
+        res = sys.maxint
         for i, val in enumerate(hashes):
             t_bin = (val % self._width) + (i * self._width)
             self._bins[t_bin] -= x
@@ -70,8 +76,11 @@ class CountMinSketch(object):
 
     def check(self, key, query='min'):
         ''' check number of times element 'key' is in the count-min sketch '''
-        qry = query.lower()
         hashes = self._hash_function(key, self._depth)
+        return self.check_alt(hashes, query)
+
+    def check_alt(self, hashes, query='min'):
+        qry = query.lower()
         bins = self.__get_values_sorted(hashes)
         if qry == 'min' or qry is 'min':
             res = bins[0]
@@ -177,8 +186,8 @@ if __name__ == '__main__':
     #     t = 100 * (i + 1);
     #     cms.add(str(i), t)
     print cmsf.check(str(0), 'min')
-    # print cms.check(str(0), 'mean')
-    # print cms.check(str(0), 'mean-min')
+    print cmsf.check(str(0), 'mean')
+    print cmsf.check(str(0), 'mean-min')
     # print cms._elements_added, cms._width, cms._depth, cms._confidence
     # cms.export('./dist/py_test.cms')
     # cms.load('./dist/py_test.cms')
