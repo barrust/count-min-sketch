@@ -28,7 +28,7 @@ class CountMinSketch(object):
             self._confidence = confidence
             self._error_rate = error_rate
             self._width = math.ceil(2 / error_rate)
-            self._depth = math.ceil((-1 * math.log(1 - confidence)) / 0.6931471805599453);
+            self._depth = math.ceil((-1 * math.log(1 - confidence)) / 0.6931471805599453)
             self._bins = [0] * (self._width * self._depth)
         elif filepath is not None:
             self.load(filepath, hash_function)
@@ -85,18 +85,18 @@ class CountMinSketch(object):
         if qry == 'min' or qry is 'min':
             res = bins[0]
         elif qry == 'mean' or qry is 'mean':
-            res = sum(bins) / self._depth
+            res = sum(bins) // self._depth
         elif qry == 'mean-min' or qry is 'mean-min':
             meanmin = list()
             for b in bins:
-                meanmin.append(b - ((self._elements_added - b) / (self._width - 1)))
+                meanmin.append(b - ((self._elements_added - b) // (self._width - 1)))
                 meanmin.sort()
             if self._depth % 2 == 0:
-                res = (meanmin[self._depth/2] + meanmin[self._depth/2 - 1]) / 2;
+                res = (meanmin[self._depth//2] + meanmin[self._depth//2 - 1]) / 2
             else:
-                res = meanmin[self._depth/2]
+                res = meanmin[self._depth//2]
         else:
-            print 'invalid query type'
+            print('invalid query type')
         return res
 
     def export(self, filepath):
@@ -116,7 +116,6 @@ class CountMinSketch(object):
             offset = struct.calcsize('IIl')
             fp.seek(offset * -1, os.SEEK_END)
             mybytes = struct.unpack('IIl', fp.read(offset))
-            # print mybytes
             self._width = mybytes[0]
             self._depth = mybytes[1]
             self._elements_added = mybytes[2]
@@ -170,7 +169,7 @@ class CountMinSketch(object):
 
 if __name__ == '__main__':
     # cms = CountMinSketch(width=100000, depth=7)
-    cmsf = CountMinSketch(filepath='./dist/test_export.cms')
+    cmsf = CountMinSketch(filepath='./dist/py_test.cms')
     # if cms._width != cmsf._width:
     #     print 'width does not match!'
     # if cms._depth != cmsf._depth:
@@ -183,11 +182,11 @@ if __name__ == '__main__':
     #     if bn != 0:
     #         print bn
     # for i in range(0, 100):
-    #     t = 100 * (i + 1);
+    #     t = 100 * (i + 1)
     #     cms.add(str(i), t)
-    print cmsf.check(str(0), 'min')
-    print cmsf.check(str(0), 'mean')
-    print cmsf.check(str(0), 'mean-min')
+    print(cmsf.check(str(0), 'min'))
+    print(cmsf.check(str(0), 'mean'))
+    print(cmsf.check(str(0), 'mean-min'))
     # print cms._elements_added, cms._width, cms._depth, cms._confidence
     # cms.export('./dist/py_test.cms')
     # cms.load('./dist/py_test.cms')
