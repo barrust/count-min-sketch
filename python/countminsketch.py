@@ -60,8 +60,7 @@ class CountMinSketch(object):
             self._bins[t_bin] = tmp if tmp < sys.maxint else sys.maxint
             if self._bins[t_bin] < res:
                 res = self._bins[t_bin]
-        # NOTE: should this check for overflow too?
-        self._elements_added += x
+        self._elements_added = sys.maxint if self._elements_added + x > sys.maxint else self._elements_added + x
         return res
 
     def remove(self, key, x=1):
@@ -77,13 +76,12 @@ class CountMinSketch(object):
             self._bins[t_bin] = tmp if tmp > sys.minint else sys.minint
             if self._bins[t_bin] < res:
                 res = self._bins[t_bin]
-        # NOTE: should this check for overflow too?
-        self._elements_added -= x
+        self._elements_added = sys.maxint if self._elements_added - x < sys.minint else self._elements_added - x
         return res
 
     def check(self, key, query='min'):
         ''' check number of times element 'key' is in the count-min sketch '''
-        hashes = self._hash_function(key, self._depth)
+        hashes = self.hashes(key)
         return self.check_alt(hashes, query)
 
     def check_alt(self, hashes, query='min'):
