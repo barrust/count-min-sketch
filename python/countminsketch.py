@@ -44,33 +44,40 @@ class CountMinSketch(object):
         for i, _ in enumerate(self._bins):
             self._bins[i] = 0
 
+    def hashes(self, key, depth=None):
+        return self._hash_function(key, self._depth if depth is None else depth)
+
     def add(self, key, x=1):
         ''' add element 'key' to the count-min sketch 'x' times '''
-        hashes = self._hash_function(key, self._depth)
+        hashes = self.hashes(key)
         return self.add_alt(hashes, x)
 
     def add_alt(self, hashes, x=1):
         res = sys.maxint
         for i, val in enumerate(hashes):
             t_bin = (val % self._width) + (i * self._width)
-            self._bins[t_bin] += x
+            tmp = self._bins[t_bin] + x
+            self._bins[t_bin] = tmp if tmp < sys.maxint else sys.maxint
             if self._bins[t_bin] < res:
                 res = self._bins[t_bin]
+        # NOTE: should this check for overflow too?
         self._elements_added += x
         return res
 
     def remove(self, key, x=1):
         ''' remove element 'key' from the count-min sketch 'x' times '''
-        hashes = self._hash_function(key, self._depth)
+        hashes = self.hashes(key)
         return remove_alt(hashes, x)
 
     def remove_alt(self, hashes, x=1):
         res = sys.maxint
         for i, val in enumerate(hashes):
             t_bin = (val % self._width) + (i * self._width)
-            self._bins[t_bin] -= x
+            tmp = self._bins[t_bin] - x
+            self._bins[t_bin] = tmp if tmp > sys.minint else sys.minint
             if self._bins[t_bin] < res:
                 res = self._bins[t_bin]
+        # NOTE: should this check for overflow too?
         self._elements_added -= x
         return res
 
