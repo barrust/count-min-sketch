@@ -22,7 +22,8 @@ static void __read_from_file(CountMinSketch *cms, FILE *fp, short on_disk, char 
 static uint64_t* __default_hash(int num_hashes, char *key);
 static uint64_t __fnv_1a(char *key);
 int __compare (const void * a, const void * b);
-
+int __safe_add(int a, int b);
+int __safe_sub(int a, int b);
 
 
 int cms_init_optimal_alt(CountMinSketch *cms, double error_rate, double confidence, cms_hash_function hash_function) {
@@ -68,15 +69,13 @@ int cms_add_inc_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes, unsig
     int i, num_add = INT_MAX;
     for (i = 0; i < cms->depth; i++) {
         int bin = (hashes[i] % cms->width) + (i * cms->width);
-        if (cms->bins[bin] != INT_MAX) {
-            cms->bins[bin] += x;
-        }
+        cms->bins[bin] = __safe_add(cms->bins[bin], x);
         /* currently a standard min strategy */
         if (cms->bins[bin] < num_add) {
             num_add = cms->bins[bin];
         }
     }
-    cms->elements_added += x;
+    cms->elements_added = __safe_add(cms->elements_added, x);
     return num_add;
 }
 
@@ -95,14 +94,12 @@ int cms_remove_inc_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes, un
     int i, num_add = INT_MAX;
     for (i = 0; i < cms->depth; i++) {
         int bin = (hashes[i] % cms->width) + (i * cms->width);
-        if (cms->bins[bin] < (INT_MIN + x)) {
-            cms->bins[bin] -= x;
-        }
+        cms->bins[bin] = __safe_sub(cms->bins[bin], x);
         if (cms->bins[bin] < num_add) {
             num_add = cms->bins[bin];
         }
     }
-    cms->elements_added -= x;
+    cms->elements_added = __safe_sub(cms->elements_added, x);
     return num_add;
 }
 
@@ -307,4 +304,43 @@ static uint64_t __fnv_1a(char *key) {
 
 int __compare (const void * a, const void * b) {
   return ( *(long*)a - *(long*)b );
+}
+
+
+int __safe_add(int a, int b) {
+    /* use the gcc macro if compiling with GCC, otherwise, simple overflow check */
+    int c = 0;
+    #ifdef __GNUC__
+        int bl = __builtin_sadd_overflow(a, b, &c);
+        if (bl != 0) {
+            c = INT_MAX;
+        }
+    #else
+        if (b < INT_MIN + a) {
+            c = INT_MIN;
+        } else {
+            c = a - b;
+        }
+    #endif
+
+    return c;
+}
+
+int __safe_sub(int a, int b) {
+    /* use the gcc macro if compiling with GCC, otherwise, simple overflow check */
+    int c = 0;
+    #ifdef __GNUC__
+        int bl = __builtin_ssub_overflow(a, b, &c);
+        if (bl != 0) {
+            c = INT_MAX;
+        }
+    #else
+        if (b > INT_MAX - a) {
+            c = INT_MAX;
+        } else {
+            c = a + b;
+        }
+    #endif
+
+    return c;
 }
