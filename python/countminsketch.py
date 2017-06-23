@@ -130,12 +130,10 @@ class CountMinSketch(object):
             fp.seek(0, os.SEEK_SET)
             length = self._width * self._depth
             self._bins = [0] * length
-            j = 0
-            q = 0
             for i in range(0, length):
                 val = struct.unpack('i', fp.read(4))[0]
-                if int(val) != 0:
-                    self._bins[i] = int(val)
+                if val != 0:
+                    self._bins[i] = val
 
         if hash_function is None:
             self._hash_function = self.__default_hash
@@ -172,26 +170,30 @@ class CountMinSketch(object):
         bins.sort()
         return bins
 
+
 if __name__ == '__main__':
-    # cms = CountMinSketch(width=100000, depth=7)
+
+    ## Test export output
+    print('build in memory check')
+    cms = CountMinSketch(width=100000, depth=7)
+    # add elements
+    for i in range(0, 100):
+        t = 100 * (i + 1)
+        cms.add(str(i), t)
+
+    print(cms.check(str(0), 'min'))
+    print(cms.check(str(0), 'mean'))
+    print(cms.check(str(0), 'mean-min'))
+    cms.export('./dist/py_test.cms')
+
+
+    print('import from disk check')
     cmsf = CountMinSketch(filepath='./dist/py_test.cms')
-    # if cms._width != cmsf._width:
-    #     print 'width does not match!'
-    # if cms._depth != cmsf._depth:
-    #     print 'depth does not match!'
-    # length = cmsf._width * cmsf._depth
-    # print cmsf._bins
-    # for bn in cmsf._bins:
-    #     # print bn
-    #     # print cms._bins[i]
-    #     if bn != 0:
-    #         print bn
-    # for i in range(0, 100):
-    #     t = 100 * (i + 1)
-    #     cms.add(str(i), t)
+    if cms._width != cmsf._width:
+        print('width does not match!')
+    if cms._depth != cmsf._depth:
+        print('depth does not match!')
+
     print(cmsf.check(str(0), 'min'))
     print(cmsf.check(str(0), 'mean'))
     print(cmsf.check(str(0), 'mean-min'))
-    # print cms._elements_added, cms._width, cms._depth, cms._confidence
-    # cms.export('./dist/py_test.cms')
-    # cms.load('./dist/py_test.cms')
