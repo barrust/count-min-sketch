@@ -24,7 +24,7 @@ typedef uint64_t* (*cms_hash_function) (int num_hashes, char *key);
 typedef struct {
     uint32_t depth;
     uint32_t width;
-    long elements_added;
+    int64_t elements_added;
     double confidence;
     double error_rate;
     cms_hash_function hash_function;

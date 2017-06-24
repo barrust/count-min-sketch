@@ -75,7 +75,7 @@ int32_t cms_add_inc_alt(CountMinSketch *cms, uint64_t* hashes, int32_t num_hashe
             num_add = cms->bins[bin];
         }
     }
-    cms->elements_added = __safe_add(cms->elements_added, x);
+    cms->elements_added = __safe_add(cms->elements_added, (int64_t)x);
     return num_add;
 }
 
@@ -99,7 +99,7 @@ int32_t cms_remove_inc_alt(CountMinSketch *cms, uint64_t* hashes, int num_hashes
             num_add = cms->bins[bin];
         }
     }
-    cms->elements_added = __safe_sub(cms->elements_added, x);
+    cms->elements_added = __safe_sub(cms->elements_added, (int64_t)x);
     return num_add;
 }
 
@@ -158,7 +158,7 @@ int32_t cms_check_mean_min_alt(CountMinSketch *cms, uint64_t* hashes, int num_ha
         return CMS_ERROR;
     }
     int32_t i, num_add = 0;
-    long* mean_min_values = calloc(cms->depth, sizeof(long));
+    int64_t* mean_min_values = calloc(cms->depth, sizeof(long));
     for (i = 0; i < cms->depth; i++) {
         uint32_t bin = (hashes[i] % cms->width) + (i * cms->width);
         int32_t val = cms->bins[bin];
@@ -244,7 +244,7 @@ static void __write_to_file(CountMinSketch *cms, FILE *fp, short on_disk) {
     }
     fwrite(&cms->width, sizeof(int32_t), 1, fp);
     fwrite(&cms->depth, sizeof(int32_t), 1, fp);
-    fwrite(&cms->elements_added, sizeof(long), 1, fp);
+    fwrite(&cms->elements_added, sizeof(int64_t), 1, fp);
 }
 
 static void __read_from_file(CountMinSketch *cms, FILE *fp, short on_disk, char *filename) {
@@ -256,7 +256,7 @@ static void __read_from_file(CountMinSketch *cms, FILE *fp, short on_disk, char 
     read = fread(&cms->depth, sizeof(int32_t), 1, fp);
     cms->confidence = 1 - (1 / pow(2, cms->depth));
     cms->error_rate = 2 / (double) cms->width;
-    read = fread(&cms->elements_added, sizeof(long), 1, fp);
+    read = fread(&cms->elements_added, sizeof(int64_t), 1, fp);
 
     rewind(fp);
     long length = cms->width * cms->depth;

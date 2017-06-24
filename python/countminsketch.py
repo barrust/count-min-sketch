@@ -17,6 +17,11 @@ class CountMinSketch(object):
         self._confidence = 0.0
         self._error_rate = 0.0
         self._elements_added = 0
+        # for python2 and python3 support
+        self.__int32_t_min = -2147483648
+        self.__int32_t_max =  2147483647
+        self.__int64_t_min = -9223372036854775808
+        self.__int64_t_max =  9223372036854775807
 
         if width is not None and depth is not None:
             self._width = width
@@ -53,14 +58,14 @@ class CountMinSketch(object):
         return self.add_alt(hashes, x)
 
     def add_alt(self, hashes, x=1):
-        res = sys.maxint
+        res = self.__int32_t_max
         for i, val in enumerate(hashes):
             t_bin = (val % self._width) + (i * self._width)
             tmp = self._bins[t_bin] + x
-            self._bins[t_bin] = tmp if tmp < sys.maxint else sys.maxint
+            self._bins[t_bin] = tmp if tmp < self.__int32_t_max else self.__int32_t_max
             if self._bins[t_bin] < res:
                 res = self._bins[t_bin]
-        self._elements_added = sys.maxint if self._elements_added + x > sys.maxint else self._elements_added + x
+        self._elements_added = self.__int32_t_max if self._elements_added + x > self.__int32_t_max else self._elements_added + x
         return res
 
     def remove(self, key, x=1):
@@ -69,14 +74,14 @@ class CountMinSketch(object):
         return remove_alt(hashes, x)
 
     def remove_alt(self, hashes, x=1):
-        res = sys.maxint
+        res = self.__int32_t_max
         for i, val in enumerate(hashes):
             t_bin = (val % self._width) + (i * self._width)
             tmp = self._bins[t_bin] - x
-            self._bins[t_bin] = tmp if tmp > sys.minint else sys.minint
+            self._bins[t_bin] = tmp if tmp > self.__int32_t_min else self.__int32_t_min
             if self._bins[t_bin] < res:
                 res = self._bins[t_bin]
-        self._elements_added = sys.maxint if self._elements_added - x < sys.minint else self._elements_added - x
+        self._elements_added = self.__int32_t_max if self._elements_added - x < self.__int32_t_min else self._elements_added - x
         return res
 
     def check(self, key, query='min'):
@@ -113,12 +118,12 @@ class CountMinSketch(object):
             # write the other pieces of information...
             fp.write(struct.pack('I', self._width))
             fp.write(struct.pack('I', self._depth))
-            fp.write(struct.pack('l', self._elements_added))
+            fp.write(struct.pack('q', self._elements_added))
 
     def load(self, filepath, hash_function=None):
         ''' load the count-min sketch from file '''
         with open(filepath, 'rb') as fp:
-            offset = struct.calcsize('IIl')
+            offset = struct.calcsize('IIq')
             fp.seek(offset * -1, os.SEEK_END)
             mybytes = struct.unpack('IIl', fp.read(offset))
             self._width = mybytes[0]
