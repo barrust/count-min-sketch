@@ -5,7 +5,7 @@ Count-Min Sketch python implementation
 # Author: Tyler Barrus (barrust@gmail.com)
 from __future__ import (print_function)
 import os
-import struct
+from struct import (pack, unpack, calcsize)
 import math
 
 
@@ -37,7 +37,8 @@ class CountMinSketch(object):
             self._confidence = confidence
             self._error_rate = error_rate
             self._width = math.ceil(2 / error_rate)
-            self._depth = math.ceil((-1 * math.log(1 - confidence)) / 0.6931471805599453)
+            numerator = (-1 * math.log(1 - confidence))
+            self._depth = math.ceil(numerator / 0.6931471805599453)
             self._bins = [0] * (self._width * self._depth)
         elif filepath is not None:
             self.load(filepath, hash_function)
@@ -75,7 +76,11 @@ class CountMinSketch(object):
                 self._bins[t_bin] = self.__int32_t_max
             if self._bins[t_bin] < res:
                 res = self._bins[t_bin]
-        self._elements_added = self.__int32_t_max if self._elements_added + num_els > self.__int32_t_max else self._elements_added + num_els
+
+        if self._elements_added + num_els > self.__int32_t_max:
+            self._elements_added = self.__int32_t_max
+        else:
+            self._elements_added = self._elements_added + num_els
         return res
 
     def remove(self, key, num_els=1):
@@ -89,7 +94,10 @@ class CountMinSketch(object):
         for i, val in enumerate(hashes):
             t_bin = (val % self._width) + (i * self._width)
             tmp = self._bins[t_bin] - num_els
-            self._bins[t_bin] = tmp if tmp > self.__int32_t_min else self.__int32_t_min
+            if tmp > self.__int32_t_min:
+                self._bins[t_bin] = tmp
+            else:
+                self._bins[t_bin] = self.__int32_t_min
             if self._bins[t_bin] < res:
                 res = self._bins[t_bin]
         calc = self._elements_added - num_els
@@ -121,7 +129,7 @@ class CountMinSketch(object):
             meanmin.sort()
             if self._depth % 2 == 0:
                 calc = meanmin[self._depth//2] + meanmin[self._depth//2 - 1]
-                res = calc / 2  #TODO: should this be // ?
+                res = calc / 2  # TODO: should this be // ?
             else:
                 res = meanmin[self._depth//2]
         else:
@@ -133,18 +141,17 @@ class CountMinSketch(object):
         with open(filepath, 'wb') as filepointer:
             # write out the bins
             for t_bin in self._bins:
-                filepointer.write(struct.pack('i', t_bin))
+                filepointer.write(pack('i', t_bin))
             # write the other pieces of information...
-            filepointer.write(struct.pack('I', self._width))
-            filepointer.write(struct.pack('I', self._depth))
-            filepointer.write(struct.pack('q', self._elements_added))
+            filepointer.write(pack('IIq', self._width, self._depth,
+                                   self._elements_added))
 
     def load(self, filepath, hash_function=None):
         ''' load the count-min sketch from file '''
         with open(filepath, 'rb') as filepointer:
-            offset = struct.calcsize('IIq')
+            offset = calcsize('IIq')
             filepointer.seek(offset * -1, os.SEEK_END)
-            mybytes = struct.unpack('IIl', filepointer.read(offset))
+            mybytes = unpack('IIl', filepointer.read(offset))
             self._width = mybytes[0]
             self._depth = mybytes[1]
             self._elements_added = mybytes[2]
@@ -153,11 +160,9 @@ class CountMinSketch(object):
 
             filepointer.seek(0, os.SEEK_SET)
             length = self._width * self._depth
-            self._bins = [0] * length
-            #TODO: can this be done at once?
-            for i in range(0, length):
-                val = struct.unpack('i', filepointer.read(4))[0]
-                self._bins[i] = val
+            rep = 'i' * length
+            offset = calcsize(rep)
+            self._bins = list(unpack(rep, filepointer.read(offset)))
 
         if hash_function is None:
             self._hash_function = self.__default_hash
@@ -196,28 +201,27 @@ class CountMinSketch(object):
 
 
 if __name__ == '__main__':
-    pass
-    # ## Test export output
-    # print('build in memory check')
-    # cms = CountMinSketch(width=100000, depth=7)
-    # # add elements
-    # for i in range(0, 100):
-    #     t = 100 * (i + 1)
-    #     cms.add(str(i), t)
-    #
-    # print(cms.check(str(0), 'min'))
-    # print(cms.check(str(0), 'mean'))
-    # print(cms.check(str(0), 'mean-min'))
-    # cms.export('./dist/py_test.cms')
-    #
-    #
-    # print('import from disk check')
-    # cmsf = CountMinSketch(filepath='./dist/py_test.cms')
-    # if cms._width != cmsf._width:
-    #     print('width does not match!')
-    # if cms._depth != cmsf._depth:
-    #     print('depth does not match!')
-    #
-    # print(cmsf.check(str(0), 'min'))
-    # print(cmsf.check(str(0), 'mean'))
-    # print(cmsf.check(str(0), 'mean-min'))
+    # pass
+    # Test export output
+    print('build in memory check')
+    cms = CountMinSketch(width=100000, depth=7)
+    # add elements
+    for i in range(0, 100):
+        t = 100 * (i + 1)
+        cms.add(str(i), t)
+
+    print(cms.check(str(0), 'min'))
+    print(cms.check(str(0), 'mean'))
+    print(cms.check(str(0), 'mean-min'))
+    cms.export('./dist/py_test.cms')
+
+    print('import from disk check')
+    cmsf = CountMinSketch(filepath='./dist/py_test.cms')
+    if cms._width != cmsf._width:
+        print('width does not match!')
+    if cms._depth != cmsf._depth:
+        print('depth does not match!')
+
+    print(cmsf.check(str(0), 'min'))
+    print(cmsf.check(str(0), 'mean'))
+    print(cmsf.check(str(0), 'mean-min'))
