@@ -9,7 +9,8 @@ import math
 
 class CountMinSketch(object):
     ''' Count-Min Sketch class '''
-    def __init__(self, width=None, depth=None, confidence=None, error_rate=None, filepath=None, hash_function=None):
+    def __init__(self, width=None, depth=None, confidence=None,
+                 error_rate=None, filepath=None, hash_function=None):
         ''' default initilization function '''
         # default values
         self._width = 0
@@ -135,10 +136,10 @@ class CountMinSketch(object):
             fp.seek(0, os.SEEK_SET)
             length = self._width * self._depth
             self._bins = [0] * length
+            #TODO: can this be done at once?
             for i in range(0, length):
                 val = struct.unpack('i', fp.read(4))[0]
-                if val != 0:
-                    self._bins[i] = val
+                self._bins[i] = val
 
         if hash_function is None:
             self._hash_function = self.__default_hash
