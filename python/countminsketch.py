@@ -160,9 +160,8 @@ class CountMinSketch(object):
         ''' export the count-min sketch to file '''
         with open(filepath, 'wb') as filepointer:
             # write out the bins
-            for t_bin in self._bins:
-                filepointer.write(pack('i', t_bin))
-            # write the other pieces of information...
+            rep = 'i' * len(self._bins)
+            filepointer.write(pack(rep, *self._bins))
             filepointer.write(pack('IIq', self.__width, self.__depth,
                                    self.__elements_added))
 
