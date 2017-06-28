@@ -170,7 +170,7 @@ class CountMinSketch(object):
         with open(filepath, 'rb') as filepointer:
             offset = calcsize('IIq')
             filepointer.seek(offset * -1, os.SEEK_END)
-            mybytes = unpack('IIl', filepointer.read(offset))
+            mybytes = unpack('IIq', filepointer.read(offset))
             self.__width = mybytes[0]
             self.__depth = mybytes[1]
             self.__elements_added = mybytes[2]
