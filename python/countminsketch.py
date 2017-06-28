@@ -94,18 +94,16 @@ class CountMinSketch(object):
         res = self.__int32_t_max
         for i, val in enumerate(hashes):
             t_bin = (val % self.__width) + (i * self.__width)
-            tmp = self._bins[t_bin] + num_els
-            if tmp < self.__int32_t_max:
-                self._bins[t_bin] = tmp
-            else:
+            self._bins[t_bin] += num_els
+            if self._bins[t_bin] > self.__int32_t_max:
                 self._bins[t_bin] = self.__int32_t_max
             if self._bins[t_bin] < res:
                 res = self._bins[t_bin]
 
-        if self.__elements_added + num_els > self.__int32_t_max:
+        self.__elements_added += num_els
+        if self.__elements_added > self.__int32_t_max:
             self.__elements_added = self.__int32_t_max
-        else:
-            self.__elements_added = self.__elements_added + num_els
+
         return res
 
     def remove(self, key, num_els=1):
@@ -118,18 +116,15 @@ class CountMinSketch(object):
         res = self.__int32_t_max
         for i, val in enumerate(hashes):
             t_bin = (val % self.__width) + (i * self.__width)
-            tmp = self._bins[t_bin] - num_els
-            if tmp > self.__int32_t_min:
-                self._bins[t_bin] = tmp
-            else:
+            self._bins[t_bin] -= num_els
+            if self._bins[t_bin] < self.__int32_t_min:
                 self._bins[t_bin] = self.__int32_t_min
             if self._bins[t_bin] < res:
                 res = self._bins[t_bin]
-        calc = self.__elements_added - num_els
-        if calc < self.__int32_t_min:
+        self.__elements_added -= num_els
+        if self.__elements_added < self.__int32_t_min:
             self.__elements_added = self.__int32_t_max
-        else:
-            self.__elements_added = calc
+
         return res
 
     def check(self, key, query='min'):
