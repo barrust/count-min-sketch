@@ -1,5 +1,16 @@
 ## Current Version
 
+### Version 0.1.4
+* Fix mean-min query calculation
+* Add and remove same element `x` times at once
+* Minor code cleanup
+* Added additional tests
+* ***python*** implementation
+    * Add, remove and check functions
+        * Either by key or hashes
+        * Possible to insert more than 1 count at a time
+    * Export and Import (Binary compatible with the C implementation)
+
 ### Version 0.1.3
 * Updated tests
 * Added import / export functionality
