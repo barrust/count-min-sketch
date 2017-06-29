@@ -1,8 +1,8 @@
+''' Count-Min Sketch python implementation
+    License: MIT
+    Author: Tyler Barrus (barrust@gmail.com)
+    URL: https://github.com/barrust/count-min-sketch
 '''
-Count-Min Sketch python implementation
-'''
-# MIT License
-# Author: Tyler Barrus (barrust@gmail.com)
 from __future__ import (print_function)
 import os
 from struct import (pack, unpack, calcsize)
@@ -11,6 +11,7 @@ import math
 
 class CountMinSketch(object):
     ''' Count-Min Sketch class '''
+
     def __init__(self, width=None, depth=None, confidence=None,
                  error_rate=None, filepath=None, hash_function=None):
         ''' default initilization function '''
