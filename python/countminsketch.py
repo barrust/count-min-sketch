@@ -28,7 +28,9 @@ class CountMinSketch(object):
         self.__int64_t_max = 9223372036854775807
         self.__uint64_t_max = 2 ** 64
 
-        if width is not None and depth is not None:
+        if filepath is not None:
+            self.__load(filepath, hash_function)
+        elif width is not None and depth is not None:
             self.__width = width
             self.__depth = depth
             self.__confidence = 1 - (1 / math.pow(2, depth))
@@ -41,8 +43,13 @@ class CountMinSketch(object):
             numerator = (-1 * math.log(1 - confidence))
             self.__depth = math.ceil(numerator / 0.6931471805599453)
             self._bins = [0] * (self.__width * self.__depth)
-        elif filepath is not None:
-            self.load(filepath, hash_function)
+        else:
+            msg = ('Must provide one of the following to initialize the '
+                   'Count-Min Sketch: \n'
+                   '    A file to load,\n'
+                   '    The width and depth,\n'
+                   '    OR confidence and error rate')
+            raise SyntaxError(msg)
 
         if hash_function is None:
             self._hash_function = self.__default_hash
@@ -150,7 +157,7 @@ class CountMinSketch(object):
             meanmin.sort()
             if self.__depth % 2 == 0:
                 calc = meanmin[self.__depth//2] + meanmin[self.__depth//2 - 1]
-                res = calc / 2  # TODO: should this be // ?
+                res = calc // 2
             else:
                 res = meanmin[self.__depth//2]
         else:
@@ -166,7 +173,7 @@ class CountMinSketch(object):
             filepointer.write(pack('IIq', self.__width, self.__depth,
                                    self.__elements_added))
 
-    def load(self, filepath, hash_function=None):
+    def __load(self, filepath, hash_function=None):
         ''' load the count-min sketch from file '''
         with open(filepath, 'rb') as filepointer:
             offset = calcsize('IIq')
@@ -220,28 +227,65 @@ class CountMinSketch(object):
         return bins
 
 
-if __name__ == '__main__':
-    # pass
-    # Test export output
-    print('build in memory check')
-    cms = CountMinSketch(width=100000, depth=7)
-    # add elements
-    for i in range(0, 100):
-        t = 100 * (i + 1)
-        cms.add(str(i), t)
+class HeavyHitters(CountMinSketch):
+    ''' Find those elements that are the most common, up to X elements '''
 
-    print(cms.check(str(0), 'min'))
-    print(cms.check(str(0), 'mean'))
-    print(cms.check(str(0), 'mean-min'))
-    cms.export('./dist/py_test.cms')
+    def __init__(self, num_hitters=100, width=None, depth=None,
+                 confidence=None, error_rate=None, filepath=None,
+                 hash_function=None):
 
-    print('import from disk check')
-    cmsf = CountMinSketch(filepath='./dist/py_test.cms')
-    if cms.width != cmsf.width:
-        print('width does not match!')
-    if cms.depth != cmsf.depth:
-        print('depth does not match!')
+        super(HeavyHitters, self).__init__(width, depth, confidence,
+                                               error_rate, filepath,
+                                               hash_function)
+        self.__top_x = dict()  # top x heavy hitters
+        self.__top_x_size = 0
+        self.__num_hitters = num_hitters
+        self.__smallest = 0
 
-    print(cmsf.check(str(0), 'min'))
-    print(cmsf.check(str(0), 'mean'))
-    print(cmsf.check(str(0), 'mean-min'))
+    @property
+    def heavyhitters(self):
+        ''' return the heavy hitters '''
+        return self.__top_x
+
+    def add(self, key, num_els=1):
+        ''' add element to heavy hitters '''
+        hashes = self.hashes(key)
+        return self.add_alt(key, hashes, num_els)
+
+    def add_alt(self, key, hashes, num_els=1):
+        ''' add element key represented by hashes to the HeavyHitters
+            object (hence the different signature on the function!) '''
+        res = super(HeavyHitters, self).add_alt(hashes, num_els)
+
+        # update the heavy hitters list as necessary
+
+        # still have room in top x
+        if self.__top_x_size < self.__num_hitters:
+            tmp = self.__top_x.get(key, None)
+            self.__top_x[key] = res
+            if tmp is None:
+                self.__top_x_size = len(self.__top_x)
+            return res
+
+        if key in self.__top_x:  # easy update
+            self.__top_x[key] = res
+            return res
+        if res > self.__smallest:  # something in there is smaller
+            self.__top_x[key] = res
+            # get the key with the smallest element
+            tmp_key = min(self.__top_x, key=self.__top_x.get)
+            # delete this key
+            self.__top_x.pop(tmp_key, None)
+            new_min = min(self.__top_x, key=self.__top_x.get)
+            self.__smallest = self.__top_x[new_min]
+
+            return res
+        return res
+
+    def remove_alt(self, hashes, num_els=1):
+        ''' Remove element based on hases provided; not supported in
+            heavy hitters '''
+        msg = ('Unable to remove elements in the HeavyHitters '
+               'class as it is an un supported action (and does not'
+               'make sense)!')
+        raise TypeError(msg)
