@@ -235,8 +235,8 @@ class HeavyHitters(CountMinSketch):
                  hash_function=None):
 
         super(HeavyHitters, self).__init__(width, depth, confidence,
-                                               error_rate, filepath,
-                                               hash_function)
+                                           error_rate, filepath,
+                                           hash_function)
         self.__top_x = dict()  # top x heavy hitters
         self.__top_x_size = 0
         self.__num_hitters = num_hitters
@@ -289,3 +289,44 @@ class HeavyHitters(CountMinSketch):
                'class as it is an un supported action (and does not'
                'make sense)!')
         raise TypeError(msg)
+
+
+class StreamThreshold(CountMinSketch):
+    ''' keep track of those elements over a certain threshold '''
+
+    def __init__(self, threshold=100, width=None, depth=None,
+                 confidence=None, error_rate=None, filepath=None,
+                 hash_function=None):
+        super(StreamThreshold, self).__init__(width, depth, confidence,
+                                              error_rate, filepath,
+                                              hash_function)
+        self.__threshold = threshold
+        self.__meets_threshold = dict()
+
+    def add(self, key, num_els=1):
+        ''' Add the element for key into the data structure '''
+        hashes = self.hashes(key)
+        return self.add_alt(key, hashes, num_els)
+
+    def add_alt(self, key, hashes, num_els=1):
+        ''' Add the element for key into the data structure '''
+        res = super(StreamThreshold, self).add_alt(hashes, num_els)
+        if res >= self.__threshold:
+            self.__meets_threshold[key] = res
+        return res
+
+    def remove(self, key, num_els=1):
+        ''' Remove the element key from the data structure '''
+        hashes = self.hashes(key)
+        return self.remove_alt(key, hashes, num_els)
+
+    def remove_alt(self, key, hashes, num_els=1):
+        ''' Remove the element for key and hashes from the data structure '''
+        res = super(StreamThreshold, self).remove_alt(hashes, num_els)
+        if res < self.__threshold:
+            self.__meets_threshold.pop(key, None)
+
+    @property
+    def meets_threshold(self):
+        ''' dictionary of those that meet the required threshold '''
+        return self.__meets_threshold
