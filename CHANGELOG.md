@@ -1,5 +1,15 @@
 ## Current Version
 
+### Version 0.1.5
+* Added python sub classes:
+    * StreamThreshold
+        * Those elements that meet the threshold are maintained in a dictionary
+        with the element as the key and the number of times reported
+    * HeavyHitters
+        * Those elements, up to the set number or elements, that are most
+        frequent are kept in a dictionary with the element as the key and
+        the number of times reported
+
 ### Version 0.1.4
 * Fix mean-min query calculation
 * Add and remove same element `x` times at once

@@ -4,14 +4,14 @@
 /*******************************************************************************
 ***     Author: Tyler Barrus
 ***     email:  barrust@gmail.com
-***     Version: 0.1.4
+***     Version: 0.1.5
 ***     License: MIT 2017
 *******************************************************************************/
 
 #include <stdint.h>
 #include <limits.h>         /* INT_MIN */
 
-#define COUNT_MIN_SKETCH_VERSION "0.1.4"
+#define COUNT_MIN_SKETCH_VERSION "0.1.5"
 
 /* https://gcc.gnu.org/onlinedocs/gcc/Alternate-Keywords.html#Alternate-Keywords */
 #ifndef __GNUC__
