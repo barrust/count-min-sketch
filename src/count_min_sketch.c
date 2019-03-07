@@ -310,16 +310,16 @@ int __compare (const void * a, const void * b) {
 int32_t __safe_add(int a, int b) {
     /* use the gcc macro if compiling with GCC, otherwise, simple overflow check */
     int32_t c = 0;
-    #ifdef __GNUC__
+    #if (defined(__GNU__) && __GNUC__ >= 5)
         int bl = __builtin_add_overflow(a, b, &c);
         if (bl != 0) {
             c = INT_MAX;
         }
     #else
-        if (b < INT_MIN + a) {
-            c = INT_MIN;
+        if (b > INT_MAX - a) {
+            c = INT_MAX;
         } else {
-            c = a - b;
+            c = a + b;
         }
     #endif
 
@@ -329,16 +329,16 @@ int32_t __safe_add(int a, int b) {
 int32_t __safe_sub(int32_t a, int32_t b) {
     /* use the gcc macro if compiling with GCC, otherwise, simple overflow check */
     int32_t c = 0;
-    #ifdef __GNUC__
+    #if (defined(__GNU__) && __GNUC__ >= 5)
         int32_t bl = __builtin_sub_overflow(a, b, &c);
         if (bl != 0) {
             c = INT_MAX;
         }
     #else
-        if (b > INT_MAX - a) {
+        if (b < a - INT_MAX) {
             c = INT_MAX;
         } else {
-            c = a + b;
+            c = a - b;
         }
     #endif
 
