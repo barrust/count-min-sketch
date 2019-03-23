@@ -1,6 +1,7 @@
 ## Current Version
 
 ### Version 0.1.5
+* Fix for non gcc overflow checks
 * Added python sub classes:
     * StreamThreshold
         * Those elements that meet the threshold are maintained in a dictionary

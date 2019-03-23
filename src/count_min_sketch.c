@@ -21,7 +21,7 @@ static void __write_to_file(CountMinSketch *cms, FILE *fp, short on_disk);
 static void __read_from_file(CountMinSketch *cms, FILE *fp, short on_disk, char *filename);
 static uint64_t* __default_hash(int32_t num_hashes, char *key);
 static uint64_t __fnv_1a(char *key);
-int __compare (const void * a, const void * b);
+int __compare(const void * a, const void * b);
 int32_t __safe_add(int32_t a, int32_t b);
 int32_t __safe_sub(int32_t a, int32_t b);
 
@@ -302,7 +302,7 @@ static uint64_t __fnv_1a(char *key) {
 }
 
 
-int __compare (const void * a, const void * b) {
+int __compare(const void *a, const void *b) {
   return ( *(long*)a - *(long*)b );
 }
 
