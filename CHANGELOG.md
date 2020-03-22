@@ -1,5 +1,10 @@
 ## Current Version
 
+### Version 0.1.6
+* Remove the python version with the recommendation of using `pyprobables` instead
+* Ensure appropriate `const` usage for `char*`
+* Improve the hashing to be more efficient
+
 ### Version 0.1.5
 * Fix for non gcc overflow checks
 * Added python sub classes:

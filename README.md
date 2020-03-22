@@ -1,5 +1,5 @@
 # count-min-sketch
-A Count-Min Sketch implementation in **C** and in **python**.
+A Count-Min Sketch implementation in **C**.
 
 Count-Min Sketch is a probabilistic data-structure that takes sub linear space
 to store the probable count, or frequency, of occurrences of elements added
@@ -28,6 +28,9 @@ following calculation of each row (where `i` is the bin result of the hash):
 For a good description of different uses and methods of the count-min sketch,
 read [this link](https://highlyscalable.wordpress.com/2012/05/01/probabilistic-structures-web-analytics-data-mining/).
 
+For a **python version**, please check out [pyprobables](https://github.com/barrust/pyprobables)
+which has a binary compatible output.
+
 
 ## Main Features:
 * Ability to add and remove elements from the Count-Min Sketch
@@ -45,10 +48,6 @@ error and confidence
     * ***Mean-Min*** attempts to take bias into account; results are less
     skewed upwards compared to the mean lookup
 * Export and Import count-min sketch to file
-* **python** version supports
-    * count-min sketch
-    * heavy hitters
-    * stream threshold
 
 ## Future Enhancements
 * add method to calculate the possible bias (?)
@@ -75,19 +74,6 @@ if (res != 10) {
 cms_destroy(&cms);
 ```
 
-## Python Usage
-``` python
-from countminssketch import CountMinSketch
-
-cms = CountMinSketch(width=1000, depth=7)
-cms.add('test')  # returns 1
-cms.add('another test', 15)  # returns 15
-
-cms.check('another test')  # returns 15
-cms.check('something new')  # returns 0
-```
-
-For additional examples, please checkout the test folder!
 
 ## Required Compile Flags
 -lm
