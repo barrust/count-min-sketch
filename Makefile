@@ -6,7 +6,7 @@ CCFLAGS=-lm -Wall -Wpedantic -Winline -O3
 
 
 
-all: clean count_min_sketch
+all: count_min_sketch
 	$(CC) $(DISTDIR)/count_min_sketch.o $(TESTDIR)/count_min_sketch_test.c $(CCFLAGS) -o ./$(DISTDIR)/cms
 
 clean:
