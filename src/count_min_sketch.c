@@ -311,6 +311,7 @@ static int32_t __safe_add(int a, int b) {
             c = INT_MAX;
         }
     #else
+        // c = (b > INT_MAX - a) ? INT_MAX : (a + b);
         if (b > INT_MAX - a) {
             c = INT_MAX;
         } else {
@@ -330,6 +331,7 @@ static int32_t __safe_sub(int32_t a, int32_t b) {
             c = INT_MAX;
         }
     #else
+        // c = (b < a - INT_MAX) ? INT_MAX : (a - b);
         if (b < a - INT_MAX) {
             c = INT_MAX;
         } else {

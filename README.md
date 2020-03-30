@@ -6,6 +6,9 @@ to store the probable count, or frequency, of occurrences of elements added
 into the data-structure. Due to the structure and strategy of storing elements,
 it is possible that elements are over counted but not under counted.
 
+To use the library, copy the `src/count_min_sketch.h` and
+`src/count_min_sketch.c` files into your project and include it where needed.
+
 ## License:
 MIT 2017
 
