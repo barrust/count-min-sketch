@@ -120,6 +120,8 @@ static __inline__ uint64_t* cms_get_hashes(CountMinSketch* cms, const char* key)
     return cms_get_hashes_alt(cms, cms->depth, key);
 }
 
+int cms_merge(CountMinSketch* cms, int num_sketches, ...);
+
 #define CMS_SUCCESS 0
 #define CMS_ERROR   INT_MIN
 
