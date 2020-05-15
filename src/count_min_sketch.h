@@ -4,7 +4,7 @@
 /*******************************************************************************
 ***     Author: Tyler Barrus
 ***     email:  barrust@gmail.com
-***     Version: 0.1.6
+***     Version: 0.1.7
 ***     License: MIT 2017
 *******************************************************************************/
 
@@ -121,6 +121,9 @@ static __inline__ uint64_t* cms_get_hashes(CountMinSketch* cms, const char* key)
 }
 
 int cms_merge(CountMinSketch* cms, int num_sketches, ...);
+
+int cms_merge_into(CountMinSketch* cms, int num_sketches, ...);
+
 
 #define CMS_SUCCESS 0
 #define CMS_ERROR   INT_MIN

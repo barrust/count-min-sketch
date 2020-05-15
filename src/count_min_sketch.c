@@ -227,10 +227,10 @@ int cms_merge(CountMinSketch* cms, int num_sketches, ...) {
             && base_cms->width == individual_cms->width
             && base_cms->hash_function == individual_cms->hash_function)) {
 
-            fprintf(stderr, "Cannot merge sketches due to incompatible definitions (depth=(%d/%d) width=(%d/%d) hash=(%p/%p))",
+            fprintf(stderr, "Cannot merge sketches due to incompatible definitions (depth=(%d/%d) width=(%d/%d) hash=(0x%" PRIXPTR "/0x%" PRIXPTR "))",
                 base_cms->depth, individual_cms->depth,
                 base_cms->width, individual_cms->width,
-                (void *) base_cms->hash_function, (void *) individual_cms->hash_function);
+                (uintptr_t) cms->hash_function, (uintptr_t) individual_cms->hash_function);
             return CMS_ERROR;
         }
     }
@@ -255,6 +255,43 @@ int cms_merge(CountMinSketch* cms, int num_sketches, ...) {
 
     return CMS_SUCCESS;
 }
+
+int cms_merge_into(CountMinSketch* cms, int num_sketches, ...) {
+    int i;
+    uint32_t bin, bins = (cms->width * cms->depth);
+    va_list ap;
+
+    /* validate all the count-min sketches are of the same dimensions and hash function */
+    va_start(ap, num_sketches);
+    for (i = 0; i < num_sketches; ++i) {
+        CountMinSketch *individual_cms = va_arg(ap, CountMinSketch *);
+        if (!(cms->depth == individual_cms->depth
+            && cms->width == individual_cms->width
+            && cms->hash_function == individual_cms->hash_function)) {
+
+            fprintf(stderr, "Cannot merge sketches due to incompatible definitions (depth=(%d/%d) width=(%d/%d) hash=(0x%" PRIXPTR "/0x%" PRIXPTR "))",
+                cms->depth, individual_cms->depth,
+                cms->width, individual_cms->width,
+                (uintptr_t) cms->hash_function, (uintptr_t) individual_cms->hash_function);
+            return CMS_ERROR;
+        }
+    }
+    va_end(ap);
+
+    /* merge */
+    va_start(ap, num_sketches);
+    for (i = 0; i < num_sketches; ++i) {
+        CountMinSketch *individual_cms = va_arg(ap, CountMinSketch *);
+        cms->elements_added += individual_cms->elements_added;
+        for (bin = 0; bin < bins; ++bin) {
+            cms->bins[bin] = __safe_add(cms->bins[bin], individual_cms->bins[bin]);
+        }
+    }
+    va_end(ap);
+
+    return CMS_SUCCESS;
+}
+
 
 /*******************************************************************************
 *    PRIVATE FUNCTIONS
