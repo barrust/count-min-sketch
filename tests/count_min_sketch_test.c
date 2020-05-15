@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <inttypes.h>
 #include "timing.h"
 #include "../src/count_min_sketch.h"
 
@@ -66,7 +67,7 @@ int main(int argc, char** argv) {
     }
     success_or_failure(result);
 
-    printf("Count-Min Sketch: insertion total (%lu): ", cms.elements_added);
+    printf("Count-Min Sketch: insertion total (%"PRIi64"): ", cms.elements_added);
     if (cms.elements_added == TEST_DEPTH * TEST_WIDTH) {
         success_or_failure(0);
     } else {
@@ -242,6 +243,56 @@ int main(int argc, char** argv) {
         }
     }
     success_or_failure(result);
+
+    CountMinSketch cmsmerged;
+    printf("Count-Min Sketch: merge: ");
+    result = cms_merge(&cmsmerged, 2, &cms, &cms);
+    success_or_failure(result);
+
+    /* test max check */
+    printf("Count-Min Sketch: check number of insertions using min strategy: ");
+    result = 0;
+    for (i = 0; i < TEST_DEPTH; ++i) {
+        char key[KEY_LEN] = {0};
+        sprintf(key, "%d", i);
+        res = cms_check_min(&cmsmerged, key);
+        if (res != (2 * TEST_WIDTH)) {
+            result = 1;
+            printf("Error with key=%s\ti=%d\tres=%d\n", key, i, res);
+        }
+    }
+    success_or_failure(result);
+
+    /* test mean check */
+    printf("Count-Min Sketch: check number of insertions using mean strategy: ");
+    result = 0;
+    for (i = 0; i < TEST_DEPTH; ++i) {
+        char key[KEY_LEN] = {0};
+        sprintf(key, "%d", i);
+        int error_rate = ((2 * TEST_WIDTH) + ceil((2 * TEST_WIDTH) * TEST_MEAN_ERROR));
+        res = cms_check_mean(&cmsmerged, key);
+        if (res < (2 * TEST_WIDTH) || res > error_rate ) {
+            printf("Error with key=%s\ti=%d\tres=%d, error_rate=%d\n", key, i, res, error_rate);
+            result = 1;
+        }
+    }
+    success_or_failure(result);
+
+    printf("Count-Min Sketch: check number of insertions using mean-min strategy (similar values): ");
+    result = 0;
+    for (i = 0; i < TEST_DEPTH; ++i) {
+        char key[KEY_LEN] = {0};
+        sprintf(key, "%d", i);
+        int error_rate = (2 * TEST_WIDTH) * TEST_MEAN_ERROR;
+        res = cms_check_mean_min(&cmsmerged, key);
+        if (res >= (2 * TEST_WIDTH) + error_rate || res <= (2 * TEST_WIDTH) - error_rate) {
+            printf("Error with key=%s\ti=%d\tres=%d\n", key, i, res);
+            result = 1;
+        }
+    }
+    success_or_failure(result);
+
+    cms_destroy(&cmsmerged);
     cms_destroy(&cms);
 
     timing_end(&tm);

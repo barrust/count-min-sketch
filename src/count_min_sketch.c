@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <limits.h>
 #include <inttypes.h>       /* PRIu64 */
 #include <math.h>
@@ -212,6 +213,49 @@ int cms_import_alt(CountMinSketch* cms, const char* filepath, cms_hash_function 
     return CMS_SUCCESS;
 }
 
+int cms_merge(CountMinSketch* cms, int num_sketches, ...) {
+    CountMinSketch *base_cms;
+    int i;
+    va_list ap;
+
+    /* Test compatibility */
+    va_start(ap, num_sketches);
+    base_cms = (CountMinSketch *) va_arg(ap, CountMinSketch *);
+    for (i = 1; i < num_sketches; ++i) {
+        CountMinSketch *individual_cms = va_arg(ap, CountMinSketch *);
+        if (!(base_cms->depth == individual_cms->depth
+            && base_cms->width == individual_cms->width
+            && base_cms->hash_function == individual_cms->hash_function)) {
+
+            fprintf(stderr, "Cannot merge sketches due to incompatible definitions (depth=(%d/%d) width=(%d/%d) hash=(%p/%p))",
+                base_cms->depth, individual_cms->depth,
+                base_cms->width, individual_cms->width,
+                (void *) base_cms->hash_function, (void *) individual_cms->hash_function);
+            return CMS_ERROR;
+        }
+    }
+    va_end(ap);
+
+    /* Merge */
+    va_start(ap, num_sketches);
+    if (CMS_ERROR == __setup_cms(cms, base_cms->width, base_cms->depth,
+        base_cms->error_rate, base_cms->confidence, base_cms->hash_function)) {
+        return CMS_ERROR;
+    }
+
+    uint32_t bin, bins = (cms->width * cms->depth);
+    for (i = 0; i < num_sketches; ++i) {
+        CountMinSketch *individual_cms = va_arg(ap, CountMinSketch *);
+        cms->elements_added += individual_cms->elements_added;
+        for (bin = 0; bin < bins; ++bin) {
+            cms->bins[bin] = __safe_add(cms->bins[bin], individual_cms->bins[bin]);
+        }
+    }
+    va_end(ap);
+
+    return CMS_SUCCESS;
+}
+
 /*******************************************************************************
 *    PRIVATE FUNCTIONS
 *******************************************************************************/
@@ -221,9 +265,14 @@ static int __setup_cms(CountMinSketch* cms, unsigned int width, unsigned int dep
     cms->confidence = confidence;
     cms->error_rate = error_rate;
     cms->elements_added = 0;
-    cms->bins = calloc(width * depth, sizeof(int32_t));
+    cms->bins = calloc((width * depth), sizeof(int32_t));
     cms->hash_function = (hash_function == NULL) ? __default_hash : hash_function;
 
+    if (NULL == cms->bins) {
+        fprintf(stderr, "Failed to allocate %zu bytes for bins!",
+            ((width * depth) * sizeof(int32_t)));
+        return CMS_ERROR;
+    }
     return CMS_SUCCESS;
 }
 
