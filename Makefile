@@ -12,7 +12,7 @@ all: count_min_sketch
 debug: CCFLAGS += -g
 debug: all
 
-release: CCFLAGS += -03
+release: CCFLAGS += -O3
 release: all
 
 clean:
