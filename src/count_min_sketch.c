@@ -31,12 +31,20 @@ static int32_t __safe_sub(int32_t a, int32_t b);
 
 int cms_init_optimal_alt(CountMinSketch* cms, double error_rate, double confidence, cms_hash_function hash_function) {
     /* https://cs.stackexchange.com/q/44803 */
+    if (error_rate < 0 || confidence < 0) {
+        fprintf(stderr, "Unable to initialize the count-min sketch since either error_rate or confidence is not positive!\n");
+        return CMS_ERROR;
+    }
     uint32_t width = ceil(2 / error_rate);
     uint32_t depth = ceil((-1 * log(1 - confidence)) / LOG_TWO);
     return __setup_cms(cms, width, depth, error_rate, confidence, hash_function);
 }
 
 int cms_init_alt(CountMinSketch* cms, uint32_t width, uint32_t depth, cms_hash_function hash_function) {
+    if (depth < 1 || width < 1) {
+        fprintf(stderr, "Unable to initialize the count-min sketch since either width or depth is 0!\n");
+        return CMS_ERROR;
+    }
     double confidence = 1 - (1 / pow(2, depth));
     double error_rate = 2 / (double) width;
     return __setup_cms(cms, width, depth, error_rate, confidence, hash_function);
@@ -276,8 +284,7 @@ static int __setup_cms(CountMinSketch* cms, unsigned int width, unsigned int dep
     cms->hash_function = (hash_function == NULL) ? __default_hash : hash_function;
 
     if (NULL == cms->bins) {
-        fprintf(stderr, "Failed to allocate %zu bytes for bins!",
-            ((width * depth) * sizeof(int32_t)));
+        fprintf(stderr, "Failed to allocate %zu bytes for bins!", ((width * depth) * sizeof(int32_t)));
         return CMS_ERROR;
     }
     return CMS_SUCCESS;

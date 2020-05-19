@@ -32,25 +32,42 @@ typedef struct {
 }  CountMinSketch, count_min_sketch;
 
 
-/* Initialize the count-min sketch based on user defined width and depth */
+/*  Initialize the count-min sketch based on user defined width and depth
+    Alternatively, one can also pass in a custom hash function
+
+    Returns:
+        CMS_SUCCESS
+        CMS_ERROR   -   when unable to allocate the desired cms object or when width or depth are 0 */
 int cms_init_alt(CountMinSketch* cms, unsigned int width, unsigned int depth, cms_hash_function hash_function);
 static __inline__ int cms_init(CountMinSketch* cms, unsigned int width, unsigned int depth) {
     return cms_init_alt(cms, width, depth, NULL);
 }
 
+
 /*  Initialize the count-min sketch based on user defined error rate and
-    confidence values */
+    confidence values which is technically the optimal setup for the users needs
+    Alternatively, one can also pass in a custom hash function
+
+    Returns:
+        CMS_SUCCESS
+        CMS_ERROR   -   when unable to allocate the desired cms object or when error_rate or confidence is negative */
 int cms_init_optimal_alt(CountMinSketch* cms, double error_rate, double confidence, cms_hash_function hash_function);
 static __inline__ int cms_init_optimal(CountMinSketch* cms, float error_rate, float confidence) {
     return cms_init_optimal_alt(cms, error_rate, confidence, NULL);
 }
 
-// double cms_bias(CountMinSketch* cms);  // TODO: implement (?)
 
-/* Clean up memory used in the count-min sketch */
+/*  Free all memory used in the count-min sketch
+
+    Return:
+        CMS_SUCCESS */
 int cms_destroy(CountMinSketch* cms);
 
-/* Reset the count-min sketch to zero */
+
+/*  Reset the count-min sketch to zero elements inserted
+
+    Return:
+        CMS_SUCCESS */
 int cms_clear(CountMinSketch* cms);
 
 /* Export count-min sketch to file */
@@ -125,7 +142,7 @@ int cms_merge(CountMinSketch* cms, int num_sketches, ...);
 int cms_merge_into(CountMinSketch* cms, int num_sketches, ...);
 
 
-#define CMS_SUCCESS 0
-#define CMS_ERROR   INT_MIN
+#define CMS_SUCCESS  0
+#define CMS_ERROR   -1
 
 #endif
