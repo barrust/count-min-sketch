@@ -20,6 +20,8 @@
 static int __setup_cms(CountMinSketch* cms, uint32_t width, uint32_t depth, double error_rate, double confidence, cms_hash_function hash_function);
 static void __write_to_file(CountMinSketch* cms, FILE *fp, short on_disk);
 static void __read_from_file(CountMinSketch* cms, FILE *fp, short on_disk, const char* filename);
+static void __merge_cms(CountMinSketch* base, int num_sketches, va_list* args);
+static int __validate_merge(CountMinSketch* base, int num_sketches, va_list* args);
 static uint64_t* __default_hash(int32_t num_hashes, const char* key);
 static uint64_t __fnv_1a(const char* key);
 static int __compare(const void * a, const void * b);
@@ -214,47 +216,52 @@ int cms_import_alt(CountMinSketch* cms, const char* filepath, cms_hash_function 
 }
 
 int cms_merge(CountMinSketch* cms, int num_sketches, ...) {
-    CountMinSketch *base_cms;
-    int i;
+    CountMinSketch* base;
     va_list ap;
 
     /* Test compatibility */
     va_start(ap, num_sketches);
-    base_cms = (CountMinSketch *) va_arg(ap, CountMinSketch *);
-    for (i = 1; i < num_sketches; ++i) {
-        CountMinSketch *individual_cms = va_arg(ap, CountMinSketch *);
-        if (!(base_cms->depth == individual_cms->depth
-            && base_cms->width == individual_cms->width
-            && base_cms->hash_function == individual_cms->hash_function)) {
-
-            fprintf(stderr, "Cannot merge sketches due to incompatible definitions (depth=(%d/%d) width=(%d/%d) hash=(%p/%p))",
-                base_cms->depth, individual_cms->depth,
-                base_cms->width, individual_cms->width,
-                (void *) base_cms->hash_function, (void *) individual_cms->hash_function);
-            return CMS_ERROR;
-        }
-    }
+    int res = __validate_merge(NULL, num_sketches, &ap);
     va_end(ap);
+
+    if (CMS_ERROR == res)
+        return CMS_ERROR;
 
     /* Merge */
     va_start(ap, num_sketches);
-    if (CMS_ERROR == __setup_cms(cms, base_cms->width, base_cms->depth,
-        base_cms->error_rate, base_cms->confidence, base_cms->hash_function)) {
+    base = (CountMinSketch *) va_arg(ap, CountMinSketch *);
+    if (CMS_ERROR == __setup_cms(cms, base->width, base->depth, base->error_rate, base->confidence, base->hash_function)) {
+        va_end(ap);
         return CMS_ERROR;
     }
+    va_end(ap);
 
-    uint32_t bin, bins = (cms->width * cms->depth);
-    for (i = 0; i < num_sketches; ++i) {
-        CountMinSketch *individual_cms = va_arg(ap, CountMinSketch *);
-        cms->elements_added += individual_cms->elements_added;
-        for (bin = 0; bin < bins; ++bin) {
-            cms->bins[bin] = __safe_add(cms->bins[bin], individual_cms->bins[bin]);
-        }
-    }
+    va_start(ap, num_sketches);
+    __merge_cms(cms, num_sketches, &ap);
     va_end(ap);
 
     return CMS_SUCCESS;
 }
+
+int cms_merge_into(CountMinSketch* cms, int num_sketches, ...) {
+    va_list ap;
+
+    /* validate all the count-min sketches are of the same dimensions and hash function */
+    va_start(ap, num_sketches);
+    int res = __validate_merge(cms, num_sketches, &ap);
+    va_end(ap);
+
+    if (CMS_ERROR == res)
+        return CMS_ERROR;
+
+    /* merge */
+    va_start(ap, num_sketches);
+    __merge_cms(cms, num_sketches, &ap);
+    va_end(ap);
+
+    return CMS_SUCCESS;
+}
+
 
 /*******************************************************************************
 *    PRIVATE FUNCTIONS
@@ -319,6 +326,51 @@ static void __read_from_file(CountMinSketch* cms, FILE *fp, short on_disk, const
     } else {
         // TODO: decide if this should be done directly on disk or not
     }
+}
+
+static void __merge_cms(CountMinSketch* base, int num_sketches, va_list* args) {
+    int i;
+    uint32_t bin, bins = (base->width * base->depth);
+
+    va_list ap;
+    va_copy(ap, *args);
+
+    for (i = 0; i < num_sketches; ++i) {
+        CountMinSketch *individual_cms = va_arg(ap, CountMinSketch *);
+        base->elements_added += individual_cms->elements_added;
+        for (bin = 0; bin < bins; ++bin) {
+            base->bins[bin] = __safe_add(base->bins[bin], individual_cms->bins[bin]);
+        }
+    }
+    va_end(ap);
+}
+
+
+static int __validate_merge(CountMinSketch* base, int num_sketches, va_list* args) {
+    int i = 0;
+    va_list ap;
+    va_copy(ap, *args);
+
+    if (base == NULL) {
+        base = (CountMinSketch *) va_arg(ap, CountMinSketch *);
+        ++i;
+    }
+
+    for (/* skip */; i < num_sketches; ++i) {
+        CountMinSketch *individual_cms = va_arg(ap, CountMinSketch *);
+        if (!(base->depth == individual_cms->depth
+            && base->width == individual_cms->width
+            && base->hash_function == individual_cms->hash_function)) {
+
+            fprintf(stderr, "Cannot merge sketches due to incompatible definitions (depth=(%d/%d) width=(%d/%d) hash=(0x%" PRIXPTR "/0x%" PRIXPTR "))",
+                base->depth, individual_cms->depth,
+                base->width, individual_cms->width,
+                (uintptr_t) base->hash_function, (uintptr_t) individual_cms->hash_function);
+            va_end(ap);
+            return CMS_ERROR;
+        }
+    }
+    return CMS_SUCCESS;
 }
 
 /* NOTE: The caller will free the results */

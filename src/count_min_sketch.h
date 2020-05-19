@@ -4,14 +4,14 @@
 /*******************************************************************************
 ***     Author: Tyler Barrus
 ***     email:  barrust@gmail.com
-***     Version: 0.1.6
+***     Version: 0.1.7
 ***     License: MIT 2017
 *******************************************************************************/
 
 #include <stdint.h>
 #include <limits.h>         /* INT_MIN */
 
-#define COUNT_MIN_SKETCH_VERSION "0.1.6"
+#define COUNT_MIN_SKETCH_VERSION "0.1.7"
 
 /* https://gcc.gnu.org/onlinedocs/gcc/Alternate-Keywords.html#Alternate-Keywords */
 #ifndef __GNUC__
@@ -121,6 +121,9 @@ static __inline__ uint64_t* cms_get_hashes(CountMinSketch* cms, const char* key)
 }
 
 int cms_merge(CountMinSketch* cms, int num_sketches, ...);
+
+int cms_merge_into(CountMinSketch* cms, int num_sketches, ...);
+
 
 #define CMS_SUCCESS 0
 #define CMS_ERROR   INT_MIN
