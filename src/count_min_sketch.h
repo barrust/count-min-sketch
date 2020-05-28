@@ -13,6 +13,15 @@
 
 #define COUNT_MIN_SKETCH_VERSION "0.1.7"
 
+/*  CMS_ERROR is problematic in that it is difficult to check for the error
+    state since `INT_MIN` is a valid return value of the number of items
+    inserted in at the furthest point
+    TODO: Consider other options for signaling error states */
+#define CMS_SUCCESS  0
+#define CMS_ERROR   INT_MIN
+
+
+
 /* https://gcc.gnu.org/onlinedocs/gcc/Alternate-Keywords.html#Alternate-Keywords */
 #ifndef __GNUC__
 #define __inline__ inline
@@ -80,6 +89,25 @@ static __inline__ int cms_import(CountMinSketch* cms, const char* filepath) {
     return cms_import_alt(cms, filepath, NULL);
 }
 
+/*  Insertion family of functions:
+
+    Insert the provided key or hash values into the count-min sketch X number of times.
+    Possible arguments:
+        key         -   The key to insert
+        x           -   The number of times to insert the key; if this parameter
+                        is not present in the function then it is 1
+        hashes      -   A set of hashes that represent the key to insert; very
+                        useful when adding the same element to many count-min
+                        sketches. This is only provieded if key is not.
+        num_hashes  -   The number of hashes in the hash array
+    Returns:
+        On Success  -   The number of times `key` or `hashes` that have been
+                        inserted using `min` estimation;
+                        NOTE: result can be negative!
+        On Failure  -   CMS_ERROR; this happens if there is an issue with the
+                        number of hashes provided.
+*/
+
 /* Add the provided key to the count-min sketch `x` times */
 int32_t cms_add_inc(CountMinSketch* cms, const char* key, uint32_t x);
 int32_t cms_add_inc_alt(CountMinSketch* cms, uint64_t* hashes, int num_hashes, uint32_t x);
@@ -140,9 +168,5 @@ static __inline__ uint64_t* cms_get_hashes(CountMinSketch* cms, const char* key)
 int cms_merge(CountMinSketch* cms, int num_sketches, ...);
 
 int cms_merge_into(CountMinSketch* cms, int num_sketches, ...);
-
-
-#define CMS_SUCCESS  0
-#define CMS_ERROR   -1
 
 #endif
