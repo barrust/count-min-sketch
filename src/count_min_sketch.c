@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <stdarg.h>
 #include <limits.h>
 #include <inttypes.h>       /* PRIu64 */
@@ -25,8 +26,8 @@ static int __validate_merge(CountMinSketch* base, int num_sketches, va_list* arg
 static uint64_t* __default_hash(int32_t num_hashes, const char* key);
 static uint64_t __fnv_1a(const char* key);
 static int __compare(const void * a, const void * b);
-static int32_t __safe_add(int32_t a, int32_t b);
-static int32_t __safe_sub(int32_t a, int32_t b);
+static int32_t __safe_add(int32_t a, uint32_t b);
+static int32_t __safe_sub(int32_t a, uint32_t b);
 
 
 int cms_init_optimal_alt(CountMinSketch* cms, double error_rate, double confidence, cms_hash_function hash_function) {
@@ -77,7 +78,7 @@ int32_t cms_add_inc_alt(CountMinSketch* cms, uint64_t* hashes, int32_t num_hashe
         fprintf(stderr, "Insufficient hashes to complete the addition of the element to the count-min sketch!");
         return CMS_ERROR;
     }
-    int i, num_add = INT_MAX;
+    int i, num_add = INT32_MAX;
     for (i = 0; i < cms->depth; ++i) {
         uint64_t bin = (hashes[i] % cms->width) + (i * cms->width);
         cms->bins[bin] = __safe_add(cms->bins[bin], x);
@@ -102,7 +103,7 @@ int32_t cms_remove_inc_alt(CountMinSketch* cms, uint64_t* hashes, int num_hashes
         fprintf(stderr, "Insufficient hashes to complete the removal of the element to the count-min sketch!");
         return CMS_ERROR;
     }
-    int32_t i, num_add = INT_MAX;
+    int32_t i, num_add = INT32_MAX;
     for (i = 0; i < cms->depth; ++i) {
         uint32_t bin = (hashes[i] % cms->width) + (i * cms->width);
         cms->bins[bin] = __safe_sub(cms->bins[bin], x);
@@ -126,7 +127,7 @@ int32_t cms_check_alt(CountMinSketch* cms, uint64_t* hashes, int num_hashes) {
         fprintf(stderr, "Insufficient hashes to complete the min lookup of the element to the count-min sketch!");
         return CMS_ERROR;
     }
-    int32_t i, num_add = INT_MAX;
+    int32_t i, num_add = INT32_MAX;
     for (i = 0; i < cms->depth; ++i) {
         uint32_t bin = (hashes[i] % cms->width) + (i * cms->width);
         if (cms->bins[bin] < num_add) {
@@ -169,14 +170,14 @@ int32_t cms_check_mean_min_alt(CountMinSketch* cms, uint64_t* hashes, int num_ha
         return CMS_ERROR;
     }
     int32_t i, num_add = 0;
-    int64_t* mean_min_values = calloc(cms->depth, sizeof(long));
+    int64_t* mean_min_values = calloc(cms->depth, sizeof(int64_t));
     for (i = 0; i < cms->depth; ++i) {
         uint32_t bin = (hashes[i] % cms->width) + (i * cms->width);
         int32_t val = cms->bins[bin];
         mean_min_values[i] = val - ((cms->elements_added - val) / (cms->width - 1));
     }
     // return the median of the mean_min_value array... need to sort first
-    qsort(mean_min_values, cms->depth, sizeof(long), __compare);
+    qsort(mean_min_values, cms->depth, sizeof(int64_t), __compare);
     int32_t n = cms->depth;
     if (n % 2 == 0) {
         num_add = (mean_min_values[n/2] + mean_min_values[n/2 - 1]) / 2;
@@ -406,22 +407,26 @@ static uint64_t __fnv_1a(const char* key) {
 
 
 static int __compare(const void *a, const void *b) {
-  return ( *(long*)a - *(long*)b );
+  return ( *(int64_t*)a - *(int64_t*)b );
 }
 
 
-static int32_t __safe_add(int a, int b) {
+static int32_t __safe_add(int32_t a, uint32_t b) {
+    if (a == INT32_MAX || a == INT32_MIN) {
+        return a;
+    }
+
     /* use the gcc macro if compiling with GCC, otherwise, simple overflow check */
     int32_t c = 0;
     #if (defined(__GNU__) && __GNUC__ >= 5)
-        int bl = __builtin_add_overflow(a, b, &c);
+        bool bl = __builtin_add_overflow(a, b, &c);
         if (bl != 0) {
-            c = INT_MAX;
+            c = INT32_MAX;
         }
     #else
-        // c = (b > INT_MAX - a) ? INT_MAX : (a + b);
-        if (b > INT_MAX - a) {
-            c = INT_MAX;
+        // c = (b > INT32_MAX - a) ? INT32_MAX : (a + b);
+        if (b > INT32_MAX - a) {
+            c = INT32_MAX;
         } else {
             c = a + b;
         }
@@ -430,18 +435,22 @@ static int32_t __safe_add(int a, int b) {
     return c;
 }
 
-static int32_t __safe_sub(int32_t a, int32_t b) {
+static int32_t __safe_sub(int32_t a, uint32_t b) {
+    if (a == INT32_MAX || a == INT32_MIN) {
+        return a;
+    }
+
     /* use the gcc macro if compiling with GCC, otherwise, simple overflow check */
     int32_t c = 0;
     #if (defined(__GNU__) && __GNUC__ >= 5)
         int32_t bl = __builtin_sub_overflow(a, b, &c);
         if (bl != 0) {
-            c = INT_MAX;
+            c = INT32_MAX;
         }
     #else
-        // c = (b < a - INT_MAX) ? INT_MAX : (a - b);
-        if (b < a - INT_MAX) {
-            c = INT_MAX;
+        // c = (b < a - INT32_MAX) ? INT32_MAX : (a - b);
+        if (b < a - INT32_MAX) {
+            c = INT32_MAX;
         } else {
             c = a - b;
         }

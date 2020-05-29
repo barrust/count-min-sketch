@@ -9,7 +9,6 @@
 *******************************************************************************/
 
 #include <stdint.h>
-#include <limits.h>         /* INT_MIN */
 
 #define COUNT_MIN_SKETCH_VERSION "0.1.7"
 
@@ -18,7 +17,7 @@
     inserted in at the furthest point
     TODO: Consider other options for signaling error states */
 #define CMS_SUCCESS  0
-#define CMS_ERROR   INT_MIN
+#define CMS_ERROR   INT32_MIN
 
 
 

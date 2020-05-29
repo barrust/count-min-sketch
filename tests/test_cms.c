@@ -1,13 +1,18 @@
 #include <stdio.h>
-#include <limits.h>         /* INT_MIN */
+#include <stdint.h>
+
+#include <openssl/md5.h>
 
 #include "minunit.h"
 #include "../src/count_min_sketch.h"
 
 
 CountMinSketch cms;
-const int width = 10000;
-const int depth = 7;
+const int width = 1000;
+const int depth = 5;
+
+
+static int calculate_md5sum(const char* filename, char* digest);
 
 
 void test_setup(void) {
@@ -27,8 +32,8 @@ MU_TEST(test_default_setup) {
     mu_assert_int_eq(depth, cms.depth);
     mu_assert_not_null(cms.bins);
     mu_assert_int_eq(0, cms.elements_added);
-    mu_assert_double_between(0.000000, 0.00100, cms.error_rate);
-    mu_assert_double_between(0.990, 0.9950, cms.confidence);
+    mu_assert_double_eq(0.002, cms.error_rate);
+    mu_assert_double_eq(0.96875, cms.confidence);
 
     int num_bins = cms.depth * cms.width;
     int res = 0;
@@ -45,12 +50,13 @@ MU_TEST(test_bad_init) {
 
 MU_TEST(test_init_optimal) {
     CountMinSketch c;
-    cms_init_optimal(&c, 0.001, 0.99999);
-    mu_assert_double_between(0.000000, 0.00110, c.error_rate);
-    mu_assert_double_between(0.992, 0.999999, c.confidence);
-    mu_assert_int_eq(2000, c.width);
-    mu_assert_int_eq(17, c.depth);
+    cms_init_optimal(&c, 0.002, 0.96875);
+    mu_assert_double_eq(0.002, cms.error_rate);
+    mu_assert_double_eq(0.96875, cms.confidence);
+    mu_assert_int_eq(1000, c.width);
+    mu_assert_int_eq(5, c.depth);
     mu_assert_not_null(c.bins);
+    mu_assert_int_eq(0, cms.elements_added);
     int num_bins = cms.depth * cms.width;
     int res = 0;
     for (int i = 0; i < num_bins; ++i)
@@ -69,45 +75,26 @@ MU_TEST(test_init_optimal_bad) {
 *   Test Insertions
 *******************************************************************************/
 MU_TEST(test_insertions_normal) {
-    int failures = 0;
+    mu_assert_int_eq(1, cms_add(&cms, "this is a test"));
+    mu_assert_int_eq(2, cms_add(&cms, "this is a test"));
+    mu_assert_int_eq(3, cms_add(&cms, "this is a test"));
+    mu_assert_int_eq(4, cms_add(&cms, "this is a test"));
 
-    for (int i = 0; i < width; ++i) {
-        char key[6] = {0};
-        sprintf(key, "%d", i);
-        int res = cms_add(&cms, key);
-        // printf("%d\t", res);
-        if (res > 2) {
-            ++failures;
-        }
-    }
-
-    mu_assert_int_eq(0, failures);
+    mu_assert_int_eq(4, cms.elements_added);
 }
 
 MU_TEST(test_insertions_different) {
-    int failures = 0;
-    for (int i = 0; i < width; ++i) {
-        char key[6] = {0};
-        sprintf(key, "%d", i);
-        int res = cms_add_inc(&cms, key, i + 1);
-        if (res == CMS_ERROR) {
-            ++failures;
-        }
-    }
-    mu_assert_int_eq(0, failures);
+    mu_assert_int_eq(4, cms_add_inc(&cms, "this is a test", 4));
+    mu_assert_int_eq(8, cms_add_inc(&cms, "this is a test", 4));
+    mu_assert_int_eq(12, cms_add_inc(&cms, "this is a test", 4));
+    mu_assert_int_eq(16, cms_add_inc(&cms, "this is a test", 4));
+
+    mu_assert_int_eq(16, cms.elements_added);
 }
 
 MU_TEST(test_insertions_max) {
-    int failures = 0;
-    for (int i = 0; i < width; ++i) {
-        char key[6] = {0};
-        sprintf(key, "%d", i);
-        int res = cms_add_inc(&cms, key, INT_MAX);
-        if (res == CMS_ERROR || res != INT_MAX) {
-            ++failures;
-        }
-    }
-    mu_assert_int_eq(0, failures);
+    uint32_t too_large = (uint32_t)INT32_MAX + 5;
+    mu_assert_int_eq(INT32_MAX, cms_add_inc(&cms, "this is a test", too_large));
 }
 
 /*******************************************************************************
@@ -128,6 +115,15 @@ MU_TEST(test_insertions_max) {
 /*******************************************************************************
 *   Test Export / Import
 *******************************************************************************/
+MU_TEST(test_cms_export) {
+    cms_add_inc(&cms, "this is a test", 100);
+    cms_export(&cms, "./tests/test.cms");\
+    char digest[33] = {0};
+    calculate_md5sum("./tests/test.cms", digest);
+    mu_assert_string_eq("61d2ea9d0cb09b7bb284e1cf1a860449", digest);
+    remove("./tests/test.cms");
+}
+
 
 
 MU_TEST_SUITE(test_suite) {
@@ -151,7 +147,7 @@ MU_TEST_SUITE(test_suite) {
     /* clear / reset */
 
     /* export and import */
-
+    MU_RUN_TEST(test_cms_export);
 }
 
 int main() {
@@ -162,4 +158,41 @@ int main() {
     MU_REPORT();
     printf("Number failed tests: %d\n", minunit_fail);
     return minunit_fail;
+}
+
+
+
+
+/* private functions */
+static int calculate_md5sum(const char* filename, char* digest) {
+    //open file for calculating md5sum
+    FILE *file_ptr;
+    file_ptr = fopen(filename, "r");
+    if (file_ptr==NULL) {
+        perror("Error opening file");
+        fflush(stdout);
+        return 1;
+    }
+
+    int n;
+    MD5_CTX c;
+    char buf[512];
+    ssize_t bytes;
+    unsigned char out[MD5_DIGEST_LENGTH];
+
+    MD5_Init(&c);
+    do {
+        bytes=fread(buf, 1, 512, file_ptr);
+        MD5_Update(&c, buf, bytes);
+    } while(bytes > 0);
+
+    MD5_Final(out, &c);
+
+    for (n = 0; n < MD5_DIGEST_LENGTH; n++) {
+        char hex[3] = {0};
+        sprintf(hex, "%02x", out[n]);
+        digest[n*2] = hex[0];
+        digest[n*2+1] = hex[1];
+    }
+    return 0;
 }

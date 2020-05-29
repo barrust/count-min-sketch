@@ -16,7 +16,7 @@ release: CCFLAGS += -O3
 release: all
 
 test: count_min_sketch
-	$(CC) $(DISTDIR)/count_min_sketch.o $(TESTDIR)/test_cms.c $(CCFLAGS) -o ./$(DISTDIR)/test
+	$(CC) $(DISTDIR)/count_min_sketch.o $(TESTDIR)/test_cms.c $(CCFLAGS) -lcrypto -fsanitize=undefined -o ./$(DISTDIR)/test
 
 clean:
 	if [ -f "./$(DISTDIR)/count_min_sketch.o" ]; then rm -r ./$(DISTDIR)/count_min_sketch.o; fi
