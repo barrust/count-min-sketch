@@ -100,7 +100,12 @@ MU_TEST(test_insertions_max) {
 /*******************************************************************************
 *   Test Removals
 *******************************************************************************/
+MU_TEST(test_removal_single) {
+    mu_assert_int_eq(4, cms_add_inc(&cms, "this is a test", 4));
+    mu_assert_int_eq(4, cms.elements_added);
 
+    mu_assert_int_eq(3, cms_remove(&cms, "this is a test"));
+}
 
 /*******************************************************************************
 *   Test Estimation Strageties
@@ -141,6 +146,7 @@ MU_TEST_SUITE(test_suite) {
     MU_RUN_TEST(test_insertions_max);
 
     /* removal of items (dec, remove, etc) */
+    MU_RUN_TEST(test_removal_single);
 
     /* different estimation strategies mean, min, mean-min */
 

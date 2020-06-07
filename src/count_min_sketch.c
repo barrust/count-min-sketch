@@ -33,7 +33,7 @@ static int32_t __safe_sub(int32_t a, uint32_t b);
 int cms_init_optimal_alt(CountMinSketch* cms, double error_rate, double confidence, cms_hash_function hash_function) {
     /* https://cs.stackexchange.com/q/44803 */
     if (error_rate < 0 || confidence < 0) {
-        fprintf(stderr, "Unable to initialize the count-min sketch since either error_rate or confidence is not positive!\n");
+        fprintf(stderr, "Unable to initialize the count-min sketch since both error_rate and confidence must be positive!\n");
         return CMS_ERROR;
     }
     uint32_t width = ceil(2 / error_rate);
@@ -418,18 +418,13 @@ static int32_t __safe_add(int32_t a, uint32_t b) {
 
     /* use the gcc macro if compiling with GCC, otherwise, simple overflow check */
     int32_t c = 0;
-    #if (defined(__GNU__) && __GNUC__ >= 5)
+    #if (defined(__GNUC__) && __GNUC__ >= 5)
         bool bl = __builtin_add_overflow(a, b, &c);
         if (bl != 0) {
             c = INT32_MAX;
         }
     #else
-        // c = (b > INT32_MAX - a) ? INT32_MAX : (a + b);
-        if (b > INT32_MAX - a) {
-            c = INT32_MAX;
-        } else {
-            c = a + b;
-        }
+        c = ((int64_t) a + b > INT32_MAX) ? INT32_MAX : (a + b);
     #endif
 
     return c;
@@ -442,18 +437,13 @@ static int32_t __safe_sub(int32_t a, uint32_t b) {
 
     /* use the gcc macro if compiling with GCC, otherwise, simple overflow check */
     int32_t c = 0;
-    #if (defined(__GNU__) && __GNUC__ >= 5)
-        int32_t bl = __builtin_sub_overflow(a, b, &c);
-        if (bl != 0) {
-            c = INT32_MAX;
+    #if (defined(__GNUC__) && __GNUC__ >= 5)
+        bool bl = __builtin_sub_overflow(a, b, &c);
+        if (!bl) {
+            c = INT32_MIN;
         }
     #else
-        // c = (b < a - INT32_MAX) ? INT32_MAX : (a - b);
-        if (b < a - INT32_MAX) {
-            c = INT32_MAX;
-        } else {
-            c = a - b;
-        }
+        c = ((int64_t) b - a < INT32_MIN) ? INT32_MAX : (a - b);
     #endif
 
     return c;
