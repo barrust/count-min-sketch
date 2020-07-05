@@ -3,12 +3,6 @@ language: c
 
 jobs:
   include:
-    - os: osx
-      osx_image: xcode10.1
-
-    - os: osx
-      osx_image: xcode9.4
-
     # works on Precise and Trusty
     - os: linux
       addons:

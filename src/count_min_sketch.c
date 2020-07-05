@@ -297,9 +297,9 @@ static int __setup_cms(CountMinSketch* cms, unsigned int width, unsigned int dep
 }
 
 static void __write_to_file(CountMinSketch* cms, FILE *fp, short on_disk) {
-    unsigned long long i, length = cms->depth * cms->width;
+    unsigned long long length = cms->depth * cms->width;
     if (on_disk == 0) {
-        for (i = 0; i < length; ++i) {
+        for (unsigned long long i = 0; i < length; ++i) {
             fwrite(&cms->bins[i], sizeof(int32_t), 1, fp);
         }
     } else {
@@ -320,18 +320,18 @@ static void __read_from_file(CountMinSketch* cms, FILE *fp, short on_disk, const
     /* read in the values from the file before getting the sketch itself */
     int offset = (sizeof(int32_t) * 2) + sizeof(long);
     fseek(fp, offset * -1, SEEK_END);
-    size_t read;
-    read = fread(&cms->width, sizeof(int32_t), 1, fp);
-    read = fread(&cms->depth, sizeof(int32_t), 1, fp);
+
+    fread(&cms->width, sizeof(int32_t), 1, fp);
+    fread(&cms->depth, sizeof(int32_t), 1, fp);
     cms->confidence = 1 - (1 / pow(2, cms->depth));
     cms->error_rate = 2 / (double) cms->width;
-    read = fread(&cms->elements_added, sizeof(int64_t), 1, fp);
+    fread(&cms->elements_added, sizeof(int64_t), 1, fp);
 
     rewind(fp);
     long length = cms->width * cms->depth;
     if (on_disk == 0) {
         cms->bins = malloc(length * sizeof(int32_t));
-        read = fread(cms->bins, sizeof(int32_t), length, fp);
+        size_t read = fread(cms->bins, sizeof(int32_t), length, fp);
         if (read != length) {
             perror("__read_from_file: ");
             exit(1);
