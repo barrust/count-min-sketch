@@ -2,21 +2,23 @@ CC=gcc
 TESTDIR=tests
 DISTDIR=dist
 SRCDIR=src
-CCFLAGS=-lm -Wall -Wpedantic -Winline
-
+COMPFLAGS=-lm -Wall -Wpedantic -Winline
 
 
 all: count_min_sketch
-	$(CC) $(DISTDIR)/count_min_sketch.o $(TESTDIR)/count_min_sketch_test.c $(CCFLAGS) -o ./$(DISTDIR)/cms
+	$(CC) $(DISTDIR)/count_min_sketch.o $(TESTDIR)/count_min_sketch_test.c $(CCFLAGS) $(COMPFLAGS) -o ./$(DISTDIR)/cms
 
-debug: CCFLAGS += -g
+debug: COMPFLAGS += -g
 debug: all
 
-release: CCFLAGS += -O3
+release: COMPFLAGS += -O3
 release: all
 
+sanitize: COMPFLAGS += -fsanitize=undefined
+sanitize: test
+
 test: count_min_sketch
-	$(CC) $(DISTDIR)/count_min_sketch.o $(TESTDIR)/test_cms.c $(CCFLAGS) -lcrypto -fsanitize=undefined -o ./$(DISTDIR)/test
+	$(CC) $(DISTDIR)/count_min_sketch.o $(TESTDIR)/test_cms.c $(CCFLAGS)  $(COMPFLAGS) -lcrypto -o ./$(DISTDIR)/test
 
 clean:
 	if [ -f "./$(DISTDIR)/count_min_sketch.o" ]; then rm -r ./$(DISTDIR)/count_min_sketch.o; fi
@@ -24,4 +26,4 @@ clean:
 	if [ -f "./$(DISTDIR)/test" ]; then rm -r ./$(DISTDIR)/test; fi
 
 count_min_sketch:
-	$(CC) -c $(SRCDIR)/count_min_sketch.c -o $(DISTDIR)/count_min_sketch.o $(CCFLAGS)
+	$(CC) -c $(SRCDIR)/count_min_sketch.c -o $(DISTDIR)/count_min_sketch.o $(CCFLAGS) $(COMPFLAGS)
