@@ -105,6 +105,21 @@ MU_TEST(test_removal_single) {
     mu_assert_int_eq(4, cms.elements_added);
 
     mu_assert_int_eq(3, cms_remove(&cms, "this is a test"));
+    mu_assert_int_eq(3, cms.elements_added);
+}
+
+MU_TEST(test_removal_mult) {
+    mu_assert_int_eq(16, cms_add_inc(&cms, "this is a test", 16));
+    mu_assert_int_eq(16, cms.elements_added);
+
+    mu_assert_int_eq(9, cms_remove_inc(&cms, "this is a test", 7));
+    mu_assert_int_eq(9, cms.elements_added);
+}
+
+MU_TEST(test_removal_max_lower) {
+    uint32_t too_large = (uint32_t)INT32_MAX + 5;
+    mu_assert_int_eq(INT32_MIN, cms_remove_inc(&cms, "this is a test", too_large));
+    mu_assert_int_eq(INT32_MIN, cms.elements_added);
 }
 
 /*******************************************************************************
@@ -147,6 +162,8 @@ MU_TEST_SUITE(test_suite) {
 
     /* removal of items (dec, remove, etc) */
     MU_RUN_TEST(test_removal_single);
+    MU_RUN_TEST(test_removal_mult);
+    MU_RUN_TEST(test_removal_max_lower);
 
     /* different estimation strategies mean, min, mean-min */
 

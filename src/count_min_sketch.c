@@ -29,6 +29,11 @@ static int __compare(const void * a, const void * b);
 static int32_t __safe_add(int32_t a, uint32_t b);
 static int32_t __safe_sub(int32_t a, uint32_t b);
 
+// Compatibility with non-clang compilers
+#ifndef __has_builtin
+    #define __has_builtin(x) 0
+#endif
+
 
 int cms_init_optimal_alt(CountMinSketch* cms, double error_rate, double confidence, cms_hash_function hash_function) {
     /* https://cs.stackexchange.com/q/44803 */
@@ -418,9 +423,9 @@ static int32_t __safe_add(int32_t a, uint32_t b) {
 
     /* use the gcc macro if compiling with GCC, otherwise, simple overflow check */
     int32_t c = 0;
-    #if (defined(__GNUC__) && __GNUC__ >= 5)
+    #if (__has_builtin(__builtin_add_overflow)) || (defined(__GNUC__) && __GNUC__ >= 5)
         bool bl = __builtin_add_overflow(a, b, &c);
-        if (bl != 0) {
+        if (bl) {
             c = INT32_MAX;
         }
     #else
@@ -437,9 +442,9 @@ static int32_t __safe_sub(int32_t a, uint32_t b) {
 
     /* use the gcc macro if compiling with GCC, otherwise, simple overflow check */
     int32_t c = 0;
-    #if (defined(__GNUC__) && __GNUC__ >= 5)
+    #if (__has_builtin(__builtin_sub_overflow)) || (defined(__GNUC__) && __GNUC__ >= 5)
         bool bl = __builtin_sub_overflow(a, b, &c);
-        if (!bl) {
+        if (bl) {
             c = INT32_MIN;
         }
     #else
