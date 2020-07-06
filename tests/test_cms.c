@@ -95,6 +95,9 @@ MU_TEST(test_insertions_different) {
 MU_TEST(test_insertions_max) {
     uint32_t too_large = (uint32_t)INT32_MAX + 5;
     mu_assert_int_eq(INT32_MAX, cms_add_inc(&cms, "this is a test", too_large));
+    mu_assert_int_eq(INT32_MAX, cms.elements_added);
+    mu_assert_int_eq(INT32_MAX, cms_add_inc(&cms, "this is a test", 2));
+    mu_assert_int_eq(INT32_MAX, cms.elements_added);
 }
 
 /*******************************************************************************
@@ -120,6 +123,9 @@ MU_TEST(test_removal_max_lower) {
     uint32_t too_large = (uint32_t)INT32_MAX + 5;
     mu_assert_int_eq(INT32_MIN, cms_remove_inc(&cms, "this is a test", too_large));
     mu_assert_int_eq(INT32_MIN, cms.elements_added);
+
+    mu_assert_int_eq(INT32_MIN, cms_remove_inc(&cms, "this is a test", 2));
+    mu_assert_int_eq(INT32_MIN, cms.elements_added);
 }
 
 /*******************************************************************************
@@ -130,17 +136,39 @@ MU_TEST(test_removal_max_lower) {
 /*******************************************************************************
 *   Test Clear / Reset
 *******************************************************************************/
+MU_TEST(test_clear) {
+    cms_add_inc(&cms, "this is a test", 100);
+    mu_assert_int_eq(100, cms.elements_added);
+    mu_assert_int_eq(100, cms_check(&cms, "this is a test"));
 
+    cms_clear(&cms);
+    mu_assert_int_eq(0, cms.elements_added);
+    mu_assert_int_eq(0, cms_check(&cms, "this is a test"));
+}
 
 /*******************************************************************************
 *   Test Export / Import
 *******************************************************************************/
 MU_TEST(test_cms_export) {
     cms_add_inc(&cms, "this is a test", 100);
-    cms_export(&cms, "./tests/test.cms");\
+    cms_export(&cms, "./tests/test.cms");
     char digest[33] = {0};
     calculate_md5sum("./tests/test.cms", digest);
     mu_assert_string_eq("61d2ea9d0cb09b7bb284e1cf1a860449", digest);
+    remove("./tests/test.cms");
+}
+
+MU_TEST(test_cms_import) {
+    cms_add_inc(&cms, "this is a test", 100);
+    cms_export(&cms, "./tests/test.cms");
+
+    CountMinSketch imp;
+    cms_import(&imp, "./tests/test.cms");
+    mu_assert_int_eq(100, imp.elements_added);
+    mu_assert_int_eq(100, cms_check(&imp, "this is a test"));
+    mu_assert_int_eq(0, cms_check(&imp, "this is also a test"));
+    cms_destroy(&imp);
+
     remove("./tests/test.cms");
 }
 
@@ -168,9 +196,11 @@ MU_TEST_SUITE(test_suite) {
     /* different estimation strategies mean, min, mean-min */
 
     /* clear / reset */
+    MU_RUN_TEST(test_clear);
 
     /* export and import */
     MU_RUN_TEST(test_cms_export);
+    MU_RUN_TEST(test_cms_import);
 }
 
 int main() {

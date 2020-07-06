@@ -78,10 +78,19 @@ int cms_destroy(CountMinSketch* cms);
         CMS_SUCCESS */
 int cms_clear(CountMinSketch* cms);
 
-/* Export count-min sketch to file */
+/* Export count-min sketch to file
+
+    Return:
+        CMS_SUCCESS - When file is opened and written
+        CMS_ERROR   - When file is unable to be opened */
 int cms_export(CountMinSketch* cms, const char* filepath);
 
 /*  Import count-min sketch from file
+
+    Return:
+        CMS_SUCCESS - When file is opened and written
+        CMS_ERROR   - When file is unable to be opened
+
     NOTE: It is up to the caller to provide the correct hashing algorithm */
 int cms_import_alt(CountMinSketch* cms, const char* filepath, cms_hash_function hash_function);
 static __inline__ int cms_import(CountMinSketch* cms, const char* filepath) {
