@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 
 #include <openssl/md5.h>
@@ -100,6 +101,13 @@ MU_TEST(test_insertions_max) {
     mu_assert_int_eq(INT32_MAX, cms.elements_added);
 }
 
+MU_TEST(test_insertion_error) {
+    uint64_t* hashes = cms_get_hashes_alt(&cms, 2, "this is a test");
+    int32_t res = cms_add_alt(&cms, hashes, 2);
+    mu_assert_int_eq(CMS_ERROR, res);
+    free(hashes);
+}
+
 /*******************************************************************************
 *   Test Removals
 *******************************************************************************/
@@ -128,10 +136,101 @@ MU_TEST(test_removal_max_lower) {
     mu_assert_int_eq(INT32_MIN, cms.elements_added);
 }
 
+MU_TEST(test_removal_error) {
+    mu_assert_int_eq(4, cms_add_inc(&cms, "this is a test", 4));
+
+    uint64_t* hashes = cms_get_hashes_alt(&cms, 2, "this is a test");
+    int32_t res = cms_remove_alt(&cms, hashes, 2);
+    mu_assert_int_eq(CMS_ERROR, res);
+    free(hashes);
+}
+
 /*******************************************************************************
 *   Test Estimation Strageties
 *******************************************************************************/
+MU_TEST(test_check) {
+    cms_add_inc(&cms, "this is a test", 255);
+    cms_add_inc(&cms, "this is another test", 189);
+    cms_add_inc(&cms, "this is also a test", 16);
+    cms_add_inc(&cms, "this is something to test", 5);
 
+    mu_assert_int_eq(255 + 189 + 16 + 5, cms.elements_added);
+
+    mu_assert_int_eq(255, cms_check(&cms, "this is a test"));
+    mu_assert_int_eq(189, cms_check(&cms, "this is another test"));
+    mu_assert_int_eq(16, cms_check(&cms, "this is also a test"));
+    mu_assert_int_eq(5, cms_check(&cms, "this is something to test"));
+}
+
+MU_TEST(test_check_error) {
+    uint64_t* hashes = cms_get_hashes_alt(&cms, 2, "this is a test");
+    int32_t res = cms_check_alt(&cms, hashes, 2);
+    mu_assert_int_eq(CMS_ERROR, res);
+    free(hashes);
+}
+
+MU_TEST(test_check_min) {
+    cms_add_inc(&cms, "this is a test", 255);
+    cms_add_inc(&cms, "this is another test", 189);
+    cms_add_inc(&cms, "this is also a test", 16);
+    cms_add_inc(&cms, "this is something to test", 5);
+
+    mu_assert_int_eq(255 + 189 + 16 + 5, cms.elements_added);
+
+    mu_assert_int_eq(255, cms_check_min(&cms, "this is a test"));
+    mu_assert_int_eq(189, cms_check_min(&cms, "this is another test"));
+    mu_assert_int_eq(16, cms_check_min(&cms, "this is also a test"));
+    mu_assert_int_eq(5, cms_check_min(&cms, "this is something to test"));
+}
+
+MU_TEST(test_check_min_error) {
+    uint64_t* hashes = cms_get_hashes_alt(&cms, 2, "this is a test");
+    int32_t res = cms_check_min_alt(&cms, hashes, 2);
+    mu_assert_int_eq(CMS_ERROR, res);
+    free(hashes);
+}
+
+MU_TEST(test_check_mean) {
+    cms_add_inc(&cms, "this is a test", 255);
+    cms_add_inc(&cms, "this is another test", 189);
+    cms_add_inc(&cms, "this is also a test", 16);
+    cms_add_inc(&cms, "this is something to test", 5);
+
+    mu_assert_int_eq(255 + 189 + 16 + 5, cms.elements_added);
+
+    mu_assert_int_eq(255, cms_check_mean(&cms, "this is a test"));
+    mu_assert_int_eq(189, cms_check_mean(&cms, "this is another test"));
+    mu_assert_int_eq(16, cms_check_mean(&cms, "this is also a test"));
+    mu_assert_int_eq(5, cms_check_mean(&cms, "this is something to test"));
+}
+
+MU_TEST(test_check_mean_error) {
+    uint64_t* hashes = cms_get_hashes_alt(&cms, 2, "this is a test");
+    int32_t res = cms_check_mean_alt(&cms, hashes, 2);
+    mu_assert_int_eq(CMS_ERROR, res);
+    free(hashes);
+}
+
+MU_TEST(test_check_mean_min) {
+    cms_add_inc(&cms, "this is a test", 255);
+    cms_add_inc(&cms, "this is another test", 189);
+    cms_add_inc(&cms, "this is also a test", 16);
+    cms_add_inc(&cms, "this is something to test", 5);
+
+    mu_assert_int_eq(255 + 189 + 16 + 5, cms.elements_added);
+
+    mu_assert_int_eq(255, cms_check_mean_min(&cms, "this is a test"));
+    mu_assert_int_eq(189, cms_check_mean_min(&cms, "this is another test"));
+    mu_assert_int_eq(16, cms_check_mean_min(&cms, "this is also a test"));
+    mu_assert_int_eq(5, cms_check_mean_min(&cms, "this is something to test"));
+}
+
+MU_TEST(test_check_mean_min_error) {
+    uint64_t* hashes = cms_get_hashes_alt(&cms, 2, "this is a test");
+    int32_t res = cms_check_mean_min_alt(&cms, hashes, 2);
+    mu_assert_int_eq(CMS_ERROR, res);
+    free(hashes);
+}
 
 /*******************************************************************************
 *   Test Clear / Reset
@@ -187,13 +286,23 @@ MU_TEST_SUITE(test_suite) {
     MU_RUN_TEST(test_insertions_normal);
     MU_RUN_TEST(test_insertions_different);
     MU_RUN_TEST(test_insertions_max);
+    MU_RUN_TEST(test_insertion_error);
 
     /* removal of items (dec, remove, etc) */
     MU_RUN_TEST(test_removal_single);
     MU_RUN_TEST(test_removal_mult);
     MU_RUN_TEST(test_removal_max_lower);
+    MU_RUN_TEST(test_removal_error);
 
     /* different estimation strategies mean, min, mean-min */
+    MU_RUN_TEST(test_check);
+    MU_RUN_TEST(test_check_error);
+    MU_RUN_TEST(test_check_min);
+    MU_RUN_TEST(test_check_min_error);
+    MU_RUN_TEST(test_check_mean);
+    MU_RUN_TEST(test_check_mean_error);
+    MU_RUN_TEST(test_check_mean_min);
+    MU_RUN_TEST(test_check_mean_min_error);
 
     /* clear / reset */
     MU_RUN_TEST(test_clear);
@@ -201,6 +310,9 @@ MU_TEST_SUITE(test_suite) {
     /* export and import */
     MU_RUN_TEST(test_cms_export);
     MU_RUN_TEST(test_cms_import);
+
+    /* merge */
+
 }
 
 int main() {
@@ -218,10 +330,9 @@ int main() {
 
 /* private functions */
 static int calculate_md5sum(const char* filename, char* digest) {
-    //open file for calculating md5sum
     FILE *file_ptr;
     file_ptr = fopen(filename, "r");
-    if (file_ptr==NULL) {
+    if (file_ptr == NULL) {
         perror("Error opening file");
         fflush(stdout);
         return 1;
@@ -235,7 +346,7 @@ static int calculate_md5sum(const char* filename, char* digest) {
 
     MD5_Init(&c);
     do {
-        bytes=fread(buf, 1, 512, file_ptr);
+        bytes = fread(buf, 1, 512, file_ptr);
         MD5_Update(&c, buf, bytes);
     } while(bytes > 0);
 
@@ -247,5 +358,8 @@ static int calculate_md5sum(const char* filename, char* digest) {
         digest[n*2] = hex[0];
         digest[n*2+1] = hex[1];
     }
+
+    fclose(file_ptr);
+
     return 0;
 }
