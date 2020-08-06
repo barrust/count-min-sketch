@@ -225,6 +225,23 @@ MU_TEST(test_check_mean_min) {
     mu_assert_int_eq(5, cms_check_mean_min(&cms, "this is something to test"));
 }
 
+MU_TEST(test_check_mean_min_even_depth) {
+    CountMinSketch even;
+    cms_init(&even, 5000, 4);
+    cms_add_inc(&even, "this is a test", 255);
+    cms_add_inc(&even, "this is another test", 189);
+    cms_add_inc(&even, "this is also a test", 16);
+    cms_add_inc(&even, "this is something to test", 5);
+
+    mu_assert_int_eq(255 + 189 + 16 + 5, even.elements_added);
+
+    mu_assert_int_eq(255, cms_check_mean_min(&even, "this is a test"));
+    mu_assert_int_eq(189, cms_check_mean_min(&even, "this is another test"));
+    mu_assert_int_eq(16, cms_check_mean_min(&even, "this is also a test"));
+    mu_assert_int_eq(5, cms_check_mean_min(&even, "this is something to test"));
+    cms_destroy(&even);
+}
+
 MU_TEST(test_check_mean_min_error) {
     uint64_t* hashes = cms_get_hashes_alt(&cms, 2, "this is a test");
     int32_t res = cms_check_mean_min_alt(&cms, hashes, 2);
@@ -271,6 +288,12 @@ MU_TEST(test_cms_import) {
     remove("./tests/test.cms");
 }
 
+MU_TEST(test_cms_import_error) {
+    CountMinSketch imp;
+    int32_t res = cms_import(&imp, "./tests/test.cms");
+    mu_assert_int_eq(CMS_ERROR, res);
+}
+
 
 
 MU_TEST_SUITE(test_suite) {
@@ -302,6 +325,7 @@ MU_TEST_SUITE(test_suite) {
     MU_RUN_TEST(test_check_mean);
     MU_RUN_TEST(test_check_mean_error);
     MU_RUN_TEST(test_check_mean_min);
+    MU_RUN_TEST(test_check_mean_min_even_depth);
     MU_RUN_TEST(test_check_mean_min_error);
 
     /* clear / reset */
@@ -310,6 +334,7 @@ MU_TEST_SUITE(test_suite) {
     /* export and import */
     MU_RUN_TEST(test_cms_export);
     MU_RUN_TEST(test_cms_import);
+    MU_RUN_TEST(test_cms_import_error);
 
     /* merge */
 

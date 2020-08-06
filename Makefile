@@ -19,7 +19,7 @@ sanitize: test
 
 test: COMPFLAGS += -coverage
 test: count_min_sketch
-	$(CC) $(DISTDIR)/count_min_sketch.o $(TESTDIR)/test_cms.c $(CCFLAGS) $(COMPFLAGS) -lcrypto -o ./$(DISTDIR)/test
+	$(CC) $(DISTDIR)/count_min_sketch.o $(TESTDIR)/test_cms.c $(CCFLAGS) $(COMPFLAGS) -lcrypto -o ./$(DISTDIR)/test -g
 
 clean:
 	if [ -f "./$(DISTDIR)/count_min_sketch.o" ]; then rm -r ./$(DISTDIR)/count_min_sketch.o; fi
@@ -32,4 +32,4 @@ clean:
 	rm -f ./*.gcov
 
 count_min_sketch:
-	$(CC) -c $(SRCDIR)/count_min_sketch.c -o $(DISTDIR)/count_min_sketch.o $(CCFLAGS) $(COMPFLAGS)
+	$(CC) -c $(SRCDIR)/count_min_sketch.c -o $(DISTDIR)/count_min_sketch.o $(CCFLAGS) $(COMPFLAGS) -g
