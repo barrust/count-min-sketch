@@ -28,6 +28,7 @@ static uint64_t __fnv_1a(const char* key);
 static int __compare(const void * a, const void * b);
 static int32_t __safe_add(int32_t a, uint32_t b);
 static int32_t __safe_sub(int32_t a, uint32_t b);
+static int32_t __safe_add_2(int32_t a, int32_t b);
 
 // Compatibility with non-clang compilers
 #ifndef __has_builtin
@@ -92,7 +93,7 @@ int32_t cms_add_inc_alt(CountMinSketch* cms, uint64_t* hashes, int32_t num_hashe
             num_add = cms->bins[bin];
         }
     }
-    cms->elements_added = __safe_add(cms->elements_added, (int64_t)x);
+    cms->elements_added += x;
     return num_add;
 }
 
@@ -116,7 +117,7 @@ int32_t cms_remove_inc_alt(CountMinSketch* cms, uint64_t* hashes, int num_hashes
             num_add = cms->bins[bin];
         }
     }
-    cms->elements_added = __safe_sub(cms->elements_added, (int64_t)x);
+    cms->elements_added -= x;
     return num_add;
 }
 
@@ -352,7 +353,7 @@ static void __merge_cms(CountMinSketch* base, int num_sketches, va_list* args) {
         CountMinSketch *individual_cms = va_arg(ap, CountMinSketch *);
         base->elements_added += individual_cms->elements_added;
         for (bin = 0; bin < bins; ++bin) {
-            base->bins[bin] = __safe_add(base->bins[bin], individual_cms->bins[bin]);
+            base->bins[bin] = __safe_add_2(base->bins[bin], individual_cms->bins[bin]);
         }
     }
     va_end(ap);
@@ -452,4 +453,18 @@ static int32_t __safe_sub(int32_t a, uint32_t b) {
     #endif
 
     return c;
+}
+
+static int32_t __safe_add_2(int32_t a, int32_t b) {
+    if (a == INT32_MAX || a == INT32_MIN) {
+        return a;
+    }
+
+    /* use the gcc macro if compiling with GCC, otherwise, simple overflow check */
+    int64_t c = (int64_t) a + (int64_t) b;
+    if (c <= INT32_MIN)
+        return INT32_MIN;
+    else if (c >= INT32_MAX)
+        return INT32_MAX;
+    return (int32_t) c;
 }

@@ -173,8 +173,26 @@ static __inline__ uint64_t* cms_get_hashes(CountMinSketch* cms, const char* key)
     return cms_get_hashes_alt(cms, cms->depth, key);
 }
 
+/*  Initialized count-min sketch and merge the cms' directly into the newly
+    initialized object
+    Return:
+        CMS_SUCCESS - When all count-min sketches are of the same size, etc and
+                      were successfully merged
+        CMS_ERROR   - When there was an error completing the merge; including
+                      when the cms' are not all of the same demensions, unable
+                      to allocate the correct memory, etc.
+*/
 int cms_merge(CountMinSketch* cms, int num_sketches, ...);
 
+/*  Merge the count-min sketches into a previously initlized object that may
+    not be empty
+    Return:
+        CMS_SUCCESS - When all count-min sketches are of the same size, etc and
+                      were successfully merged
+        CMS_ERROR   - When there was an error completing the merge; including
+                      when the cms' are not all of the same demensions, unable
+                      to allocate the correct memory, etc.
+*/
 int cms_merge_into(CountMinSketch* cms, int num_sketches, ...);
 
 #endif

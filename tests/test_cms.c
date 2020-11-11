@@ -96,9 +96,9 @@ MU_TEST(test_insertions_different) {
 MU_TEST(test_insertions_max) {
     uint32_t too_large = (uint32_t)INT32_MAX + 5;
     mu_assert_int_eq(INT32_MAX, cms_add_inc(&cms, "this is a test", too_large));
-    mu_assert_int_eq(INT32_MAX, cms.elements_added);
+    mu_assert_int_eq(too_large, cms.elements_added);
     mu_assert_int_eq(INT32_MAX, cms_add_inc(&cms, "this is a test", 2));
-    mu_assert_int_eq(INT32_MAX, cms.elements_added);
+    mu_assert_int_eq(too_large + 2, cms.elements_added);
 }
 
 MU_TEST(test_insertion_error) {
@@ -130,10 +130,10 @@ MU_TEST(test_removal_mult) {
 MU_TEST(test_removal_max_lower) {
     uint32_t too_large = (uint32_t)INT32_MAX + 5;
     mu_assert_int_eq(INT32_MIN, cms_remove_inc(&cms, "this is a test", too_large));
-    mu_assert_int_eq(INT32_MIN, cms.elements_added);
+    mu_assert_int_eq(too_large * -1, cms.elements_added);
 
     mu_assert_int_eq(INT32_MIN, cms_remove_inc(&cms, "this is a test", 2));
-    mu_assert_int_eq(INT32_MIN, cms.elements_added);
+    mu_assert_int_eq((too_large + 2) * -1 , cms.elements_added);
 }
 
 MU_TEST(test_removal_error) {
@@ -295,6 +295,62 @@ MU_TEST(test_cms_import_error) {
 }
 
 
+/*******************************************************************************
+*   Test Merge
+*******************************************************************************/
+MU_TEST(test_cms_merge_simple) {
+    cms_add_inc(&cms, "this is a test", 255);
+
+    CountMinSketch n;
+    int32_t res = cms_merge(&n, 2, &cms, &cms);
+    mu_assert_int_eq(CMS_SUCCESS, res);
+
+    mu_assert_int_eq(510, n.elements_added);
+    mu_assert_int_eq(510, cms_check_min(&n, "this is a test"));
+
+    cms_destroy(&n);
+}
+
+MU_TEST(test_cms_merge_overflow_up) {
+    int64_t too_large = (int64_t)INT32_MAX + 5;
+    cms_add_inc(&cms, "this is a test", too_large);
+
+    CountMinSketch n;
+    int32_t res = cms_merge(&n, 2, &cms, &cms);
+    mu_assert_int_eq(CMS_SUCCESS, res);
+
+    mu_assert_int_eq(too_large * 2, n.elements_added);
+    mu_assert_int_eq(INT32_MAX, cms_check_min(&n, "this is a test"));
+
+    cms_destroy(&n);
+}
+
+MU_TEST(test_cms_merge_overflow_down) {
+    uint32_t too_large = (uint32_t)INT32_MAX + 5;
+    mu_assert_int_eq(INT32_MIN, cms_remove_inc(&cms, "this is a test", too_large));
+    mu_assert_int_eq(too_large * -1, cms.elements_added);
+
+    CountMinSketch n;
+    int32_t res = cms_merge(&n, 2, &cms, &cms);
+    mu_assert_int_eq(CMS_SUCCESS, res);
+
+    mu_assert_int_eq(too_large * -2, n.elements_added);
+    mu_assert_int_eq(INT32_MIN, cms_check_min(&n, "this is a test"));
+
+    cms_destroy(&n);
+}
+
+MU_TEST(test_cms_merge_into) {
+    cms_add_inc(&cms, "this is a test", 255);
+
+    int32_t res = cms_merge_into(&cms, 1, &cms);
+    mu_assert_int_eq(CMS_SUCCESS, res);
+
+    mu_assert_int_eq(510, cms.elements_added);
+    mu_assert_int_eq(510, cms_check_min(&cms, "this is a test"));
+}
+
+
 
 MU_TEST_SUITE(test_suite) {
     MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
@@ -337,7 +393,10 @@ MU_TEST_SUITE(test_suite) {
     MU_RUN_TEST(test_cms_import_error);
 
     /* merge */
-
+    MU_RUN_TEST(test_cms_merge_simple);
+    MU_RUN_TEST(test_cms_merge_overflow_up);
+    MU_RUN_TEST(test_cms_merge_overflow_down);
+    MU_RUN_TEST(test_cms_merge_into);
 }
 
 int main() {
