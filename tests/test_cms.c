@@ -350,7 +350,7 @@ MU_TEST(test_cms_merge_into) {
     mu_assert_int_eq(510, cms_check_min(&cms, "this is a test"));
 }
 
-MU_TEST(test_cms_merge_mismatch) {
+MU_TEST(test_cms_merge_into_mismatch) {
     CountMinSketch c;
     cms_init(&c, width*2, depth);  // twice as wide!
 
@@ -360,6 +360,19 @@ MU_TEST(test_cms_merge_mismatch) {
     mu_assert_int_eq(CMS_ERROR, res);
     cms_destroy(&c);
 }
+
+MU_TEST(test_cms_merge_mismatch) {
+    CountMinSketch c;
+    cms_init(&c, width*2, depth);  // twice as wide!
+
+    cms_add_inc(&cms, "this is a test", 255);
+
+    CountMinSketch d;
+    int32_t res = cms_merge(&d, 2, &cms, &c);
+    mu_assert_int_eq(CMS_ERROR, res);
+    cms_destroy(&c);
+}
+
 
 
 MU_TEST_SUITE(test_suite) {
@@ -407,6 +420,7 @@ MU_TEST_SUITE(test_suite) {
     MU_RUN_TEST(test_cms_merge_overflow_up);
     MU_RUN_TEST(test_cms_merge_overflow_down);
     MU_RUN_TEST(test_cms_merge_into);
+    MU_RUN_TEST(test_cms_merge_into_mismatch);
     MU_RUN_TEST(test_cms_merge_mismatch);
 }
 
