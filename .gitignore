@@ -1,6 +1,9 @@
 #local
 dist/*
 !dist/.gitkeep
+*.gcno
+*.gcda
+*.gcov
 
 # Prerequisites
 *.d

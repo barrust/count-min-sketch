@@ -1,12 +1,15 @@
 ## Current Version
 
+### Version 0.1.7
+* Added count-min sketch merge functionality; thanks to [jonahharris](https://github.com/jonahharris)
+
 ### Version 0.1.6
 * Remove the python version with the recommendation of using `pyprobables` instead
 * Ensure appropriate `const` usage for `char*`
 * Improve the hashing to be more efficient
 
 ### Version 0.1.5
-* Fix for non gcc overflow checks
+* Fix for non gcc overflow checks; thank to [meixsh](https://github.com/meixsh)
 * Added python sub classes:
     * StreamThreshold
         * Those elements that meet the threshold are maintained in a dictionary

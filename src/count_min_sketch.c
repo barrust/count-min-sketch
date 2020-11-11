@@ -1,13 +1,14 @@
 /*******************************************************************************
 ***     Author: Tyler Barrus
 ***     email:  barrust@gmail.com
-***     Version: 0.1.6
+***     Version: 0.1.7
 ***     License: MIT 2017
 *******************************************************************************/
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <stdarg.h>
 #include <limits.h>
 #include <inttypes.h>       /* PRIu64 */
@@ -25,18 +26,32 @@ static int __validate_merge(CountMinSketch* base, int num_sketches, va_list* arg
 static uint64_t* __default_hash(int32_t num_hashes, const char* key);
 static uint64_t __fnv_1a(const char* key);
 static int __compare(const void * a, const void * b);
-static int32_t __safe_add(int32_t a, int32_t b);
-static int32_t __safe_sub(int32_t a, int32_t b);
+static int32_t __safe_add(int32_t a, uint32_t b);
+static int32_t __safe_sub(int32_t a, uint32_t b);
+static int32_t __safe_add_2(int32_t a, int32_t b);
+
+// Compatibility with non-clang compilers
+#ifndef __has_builtin
+    #define __has_builtin(x) 0
+#endif
 
 
 int cms_init_optimal_alt(CountMinSketch* cms, double error_rate, double confidence, cms_hash_function hash_function) {
     /* https://cs.stackexchange.com/q/44803 */
+    if (error_rate < 0 || confidence < 0) {
+        fprintf(stderr, "Unable to initialize the count-min sketch since both error_rate and confidence must be positive!\n");
+        return CMS_ERROR;
+    }
     uint32_t width = ceil(2 / error_rate);
     uint32_t depth = ceil((-1 * log(1 - confidence)) / LOG_TWO);
     return __setup_cms(cms, width, depth, error_rate, confidence, hash_function);
 }
 
 int cms_init_alt(CountMinSketch* cms, uint32_t width, uint32_t depth, cms_hash_function hash_function) {
+    if (depth < 1 || width < 1) {
+        fprintf(stderr, "Unable to initialize the count-min sketch since either width or depth is 0!\n");
+        return CMS_ERROR;
+    }
     double confidence = 1 - (1 / pow(2, depth));
     double error_rate = 2 / (double) width;
     return __setup_cms(cms, width, depth, error_rate, confidence, hash_function);
@@ -69,7 +84,7 @@ int32_t cms_add_inc_alt(CountMinSketch* cms, uint64_t* hashes, int32_t num_hashe
         fprintf(stderr, "Insufficient hashes to complete the addition of the element to the count-min sketch!");
         return CMS_ERROR;
     }
-    int i, num_add = INT_MAX;
+    int i, num_add = INT32_MAX;
     for (i = 0; i < cms->depth; ++i) {
         uint64_t bin = (hashes[i] % cms->width) + (i * cms->width);
         cms->bins[bin] = __safe_add(cms->bins[bin], x);
@@ -78,7 +93,7 @@ int32_t cms_add_inc_alt(CountMinSketch* cms, uint64_t* hashes, int32_t num_hashe
             num_add = cms->bins[bin];
         }
     }
-    cms->elements_added = __safe_add(cms->elements_added, (int64_t)x);
+    cms->elements_added += x;
     return num_add;
 }
 
@@ -94,7 +109,7 @@ int32_t cms_remove_inc_alt(CountMinSketch* cms, uint64_t* hashes, int num_hashes
         fprintf(stderr, "Insufficient hashes to complete the removal of the element to the count-min sketch!");
         return CMS_ERROR;
     }
-    int32_t i, num_add = INT_MAX;
+    int32_t i, num_add = INT32_MAX;
     for (i = 0; i < cms->depth; ++i) {
         uint32_t bin = (hashes[i] % cms->width) + (i * cms->width);
         cms->bins[bin] = __safe_sub(cms->bins[bin], x);
@@ -102,7 +117,7 @@ int32_t cms_remove_inc_alt(CountMinSketch* cms, uint64_t* hashes, int num_hashes
             num_add = cms->bins[bin];
         }
     }
-    cms->elements_added = __safe_sub(cms->elements_added, (int64_t)x);
+    cms->elements_added -= x;
     return num_add;
 }
 
@@ -118,7 +133,7 @@ int32_t cms_check_alt(CountMinSketch* cms, uint64_t* hashes, int num_hashes) {
         fprintf(stderr, "Insufficient hashes to complete the min lookup of the element to the count-min sketch!");
         return CMS_ERROR;
     }
-    int32_t i, num_add = INT_MAX;
+    int32_t i, num_add = INT32_MAX;
     for (i = 0; i < cms->depth; ++i) {
         uint32_t bin = (hashes[i] % cms->width) + (i * cms->width);
         if (cms->bins[bin] < num_add) {
@@ -161,14 +176,14 @@ int32_t cms_check_mean_min_alt(CountMinSketch* cms, uint64_t* hashes, int num_ha
         return CMS_ERROR;
     }
     int32_t i, num_add = 0;
-    int64_t* mean_min_values = calloc(cms->depth, sizeof(long));
+    int64_t* mean_min_values = calloc(cms->depth, sizeof(int64_t));
     for (i = 0; i < cms->depth; ++i) {
         uint32_t bin = (hashes[i] % cms->width) + (i * cms->width);
         int32_t val = cms->bins[bin];
         mean_min_values[i] = val - ((cms->elements_added - val) / (cms->width - 1));
     }
     // return the median of the mean_min_value array... need to sort first
-    qsort(mean_min_values, cms->depth, sizeof(long), __compare);
+    qsort(mean_min_values, cms->depth, sizeof(int64_t), __compare);
     int32_t n = cms->depth;
     if (n % 2 == 0) {
         num_add = (mean_min_values[n/2] + mean_min_values[n/2 - 1]) / 2;
@@ -276,17 +291,16 @@ static int __setup_cms(CountMinSketch* cms, unsigned int width, unsigned int dep
     cms->hash_function = (hash_function == NULL) ? __default_hash : hash_function;
 
     if (NULL == cms->bins) {
-        fprintf(stderr, "Failed to allocate %zu bytes for bins!",
-            ((width * depth) * sizeof(int32_t)));
+        fprintf(stderr, "Failed to allocate %zu bytes for bins!", ((width * depth) * sizeof(int32_t)));
         return CMS_ERROR;
     }
     return CMS_SUCCESS;
 }
 
 static void __write_to_file(CountMinSketch* cms, FILE *fp, short on_disk) {
-    unsigned long long i, length = cms->depth * cms->width;
+    unsigned long long length = cms->depth * cms->width;
     if (on_disk == 0) {
-        for (i = 0; i < length; ++i) {
+        for (unsigned long long i = 0; i < length; ++i) {
             fwrite(&cms->bins[i], sizeof(int32_t), 1, fp);
         }
     } else {
@@ -307,18 +321,18 @@ static void __read_from_file(CountMinSketch* cms, FILE *fp, short on_disk, const
     /* read in the values from the file before getting the sketch itself */
     int offset = (sizeof(int32_t) * 2) + sizeof(long);
     fseek(fp, offset * -1, SEEK_END);
-    size_t read;
-    read = fread(&cms->width, sizeof(int32_t), 1, fp);
-    read = fread(&cms->depth, sizeof(int32_t), 1, fp);
+
+    fread(&cms->width, sizeof(int32_t), 1, fp);
+    fread(&cms->depth, sizeof(int32_t), 1, fp);
     cms->confidence = 1 - (1 / pow(2, cms->depth));
     cms->error_rate = 2 / (double) cms->width;
-    read = fread(&cms->elements_added, sizeof(int64_t), 1, fp);
+    fread(&cms->elements_added, sizeof(int64_t), 1, fp);
 
     rewind(fp);
     long length = cms->width * cms->depth;
     if (on_disk == 0) {
         cms->bins = malloc(length * sizeof(int32_t));
-        read = fread(cms->bins, sizeof(int32_t), length, fp);
+        size_t read = fread(cms->bins, sizeof(int32_t), length, fp);
         if (read != length) {
             perror("__read_from_file: ");
             exit(1);
@@ -339,7 +353,7 @@ static void __merge_cms(CountMinSketch* base, int num_sketches, va_list* args) {
         CountMinSketch *individual_cms = va_arg(ap, CountMinSketch *);
         base->elements_added += individual_cms->elements_added;
         for (bin = 0; bin < bins; ++bin) {
-            base->bins[bin] = __safe_add(base->bins[bin], individual_cms->bins[bin]);
+            base->bins[bin] = __safe_add_2(base->bins[bin], individual_cms->bins[bin]);
         }
     }
     va_end(ap);
@@ -399,46 +413,58 @@ static uint64_t __fnv_1a(const char* key) {
 
 
 static int __compare(const void *a, const void *b) {
-  return ( *(long*)a - *(long*)b );
+  return ( *(int64_t*)a - *(int64_t*)b );
 }
 
 
-static int32_t __safe_add(int a, int b) {
+static int32_t __safe_add(int32_t a, uint32_t b) {
+    if (a == INT32_MAX || a == INT32_MIN) {
+        return a;
+    }
+
     /* use the gcc macro if compiling with GCC, otherwise, simple overflow check */
     int32_t c = 0;
-    #if (defined(__GNU__) && __GNUC__ >= 5)
-        int bl = __builtin_add_overflow(a, b, &c);
-        if (bl != 0) {
-            c = INT_MAX;
+    #if (__has_builtin(__builtin_add_overflow)) || (defined(__GNUC__) && __GNUC__ >= 5)
+        bool bl = __builtin_add_overflow(a, b, &c);
+        if (bl) {
+            c = INT32_MAX;
         }
     #else
-        // c = (b > INT_MAX - a) ? INT_MAX : (a + b);
-        if (b > INT_MAX - a) {
-            c = INT_MAX;
-        } else {
-            c = a + b;
-        }
+        c = ((int64_t) a + b > INT32_MAX) ? INT32_MAX : (a + b);
     #endif
 
     return c;
 }
 
-static int32_t __safe_sub(int32_t a, int32_t b) {
+static int32_t __safe_sub(int32_t a, uint32_t b) {
+    if (a == INT32_MAX || a == INT32_MIN) {
+        return a;
+    }
+
     /* use the gcc macro if compiling with GCC, otherwise, simple overflow check */
     int32_t c = 0;
-    #if (defined(__GNU__) && __GNUC__ >= 5)
-        int32_t bl = __builtin_sub_overflow(a, b, &c);
-        if (bl != 0) {
-            c = INT_MAX;
+    #if (__has_builtin(__builtin_sub_overflow)) || (defined(__GNUC__) && __GNUC__ >= 5)
+        bool bl = __builtin_sub_overflow(a, b, &c);
+        if (bl) {
+            c = INT32_MIN;
         }
     #else
-        // c = (b < a - INT_MAX) ? INT_MAX : (a - b);
-        if (b < a - INT_MAX) {
-            c = INT_MAX;
-        } else {
-            c = a - b;
-        }
+        c = ((int64_t) b - a < INT32_MIN) ? INT32_MAX : (a - b);
     #endif
 
     return c;
+}
+
+static int32_t __safe_add_2(int32_t a, int32_t b) {
+    if (a == INT32_MAX || a == INT32_MIN) {
+        return a;
+    }
+
+    /* use the gcc macro if compiling with GCC, otherwise, simple overflow check */
+    int64_t c = (int64_t) a + (int64_t) b;
+    if (c <= INT32_MIN)
+        return INT32_MIN;
+    else if (c >= INT32_MAX)
+        return INT32_MAX;
+    return (int32_t) c;
 }
