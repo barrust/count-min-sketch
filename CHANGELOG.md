@@ -1,5 +1,9 @@
 ## Current Version
 
+### Version 0.1.8
+* Added in-depth testing
+* Fixed potential overflow issues
+
 ### Version 0.1.7
 * Added count-min sketch merge functionality; thanks to [jonahharris](https://github.com/jonahharris)
 

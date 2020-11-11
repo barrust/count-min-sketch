@@ -4,13 +4,13 @@
 /*******************************************************************************
 ***     Author: Tyler Barrus
 ***     email:  barrust@gmail.com
-***     Version: 0.1.7
+***     Version: 0.1.8
 ***     License: MIT 2017
 *******************************************************************************/
 
 #include <stdint.h>
 
-#define COUNT_MIN_SKETCH_VERSION "0.1.7"
+#define COUNT_MIN_SKETCH_VERSION "0.1.8"
 
 /*  CMS_ERROR is problematic in that it is difficult to check for the error
     state since `INT_MIN` is a valid return value of the number of items

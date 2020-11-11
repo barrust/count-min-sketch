@@ -1,4 +1,11 @@
 # count-min-sketch
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![GitHub release](https://img.shields.io/github/v/release/barrust/count-min-sketch.svg)](https://github.com/barrust/count-min-sketch/releases)
+[![Build Status](https://travis-ci.com/barrust/count-min-sketch.svg?branch=master)](https://travis-ci.com/barrust/count-min-sketch)
+[![codecov](https://codecov.io/gh/barrust/count-min-sketch/branch/master/graph/badge.svg)](https://codecov.io/gh/barrust/count-min-sketch)
+
+
 A Count-Min Sketch implementation in **C**.
 
 Count-Min Sketch is a probabilistic data-structure that takes sub linear space
@@ -35,7 +42,7 @@ For a **python version**, please check out [pyprobables](https://github.com/barr
 which has a binary compatible output.
 
 
-## Main Features:
+## Main Features
 * Ability to add and remove elements from the Count-Min Sketch
     * Increment or add `x` elements at once
     * Decrement or remove `x` elements at once
@@ -51,6 +58,7 @@ error and confidence
     * ***Mean-Min*** attempts to take bias into account; results are less
     skewed upwards compared to the mean lookup
 * Export and Import count-min sketch to file
+* Ability to merge multiple count-min sketches together
 
 ## Future Enhancements
 * add method to calculate the possible bias (?)
