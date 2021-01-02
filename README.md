@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![GitHub release](https://img.shields.io/github/v/release/barrust/count-min-sketch.svg)](https://github.com/barrust/count-min-sketch/releases)
-[![Build Status](https://travis-ci.com/barrust/count-min-sketch.svg?branch=master)](https://travis-ci.com/barrust/count-min-sketch)
+[![C/C++ CI](https://github.com/barrust/count-min-sketch/workflows/C/C++%20CI/badge.svg?branch=master)](https://github.com/barrust/count-min-sketch/actions)
 [![codecov](https://codecov.io/gh/barrust/count-min-sketch/branch/master/graph/badge.svg)](https://codecov.io/gh/barrust/count-min-sketch)
 
 
