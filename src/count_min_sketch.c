@@ -23,7 +23,7 @@ static void __write_to_file(CountMinSketch* cms, FILE *fp, short on_disk);
 static void __read_from_file(CountMinSketch* cms, FILE *fp, short on_disk, const char* filename);
 static void __merge_cms(CountMinSketch* base, int num_sketches, va_list* args);
 static int __validate_merge(CountMinSketch* base, int num_sketches, va_list* args);
-static uint64_t* __default_hash(int32_t num_hashes, const char* key);
+static uint64_t* __default_hash(unsigned int num_hashes, const char* key);
 static uint64_t __fnv_1a(const char* key);
 static int __compare(const void * a, const void * b);
 static int32_t __safe_add(int32_t a, uint32_t b);
@@ -79,13 +79,13 @@ int cms_clear(CountMinSketch* cms) {
     return CMS_SUCCESS;
 }
 
-int32_t cms_add_inc_alt(CountMinSketch* cms, uint64_t* hashes, int32_t num_hashes, uint32_t x) {
+int32_t cms_add_inc_alt(CountMinSketch* cms, uint64_t* hashes, unsigned int num_hashes, uint32_t x) {
     if (num_hashes < cms->depth) {
         fprintf(stderr, "Insufficient hashes to complete the addition of the element to the count-min sketch!");
         return CMS_ERROR;
     }
-    int i, num_add = INT32_MAX;
-    for (i = 0; i < cms->depth; ++i) {
+    int num_add = INT32_MAX;
+    for (unsigned int i = 0; i < cms->depth; ++i) {
         uint64_t bin = (hashes[i] % cms->width) + (i * cms->width);
         cms->bins[bin] = __safe_add(cms->bins[bin], x);
         /* currently a standard min strategy */
@@ -104,13 +104,13 @@ int32_t cms_add_inc(CountMinSketch* cms, const char* key, unsigned int x) {
     return num_add;
 }
 
-int32_t cms_remove_inc_alt(CountMinSketch* cms, uint64_t* hashes, int num_hashes, unsigned int x) {
+int32_t cms_remove_inc_alt(CountMinSketch* cms, uint64_t* hashes, unsigned int num_hashes, unsigned int x) {
     if (num_hashes < cms->depth) {
         fprintf(stderr, "Insufficient hashes to complete the removal of the element to the count-min sketch!");
         return CMS_ERROR;
     }
-    int32_t i, num_add = INT32_MAX;
-    for (i = 0; i < cms->depth; ++i) {
+    int32_t num_add = INT32_MAX;
+    for (unsigned int i = 0; i < cms->depth; ++i) {
         uint32_t bin = (hashes[i] % cms->width) + (i * cms->width);
         cms->bins[bin] = __safe_sub(cms->bins[bin], x);
         if (cms->bins[bin] < num_add) {
@@ -128,13 +128,13 @@ int32_t cms_remove_inc(CountMinSketch* cms, const char* key, uint32_t x) {
     return num_add;
 }
 
-int32_t cms_check_alt(CountMinSketch* cms, uint64_t* hashes, int num_hashes) {
+int32_t cms_check_alt(CountMinSketch* cms, uint64_t* hashes, unsigned int num_hashes) {
     if (num_hashes < cms->depth) {
         fprintf(stderr, "Insufficient hashes to complete the min lookup of the element to the count-min sketch!");
         return CMS_ERROR;
     }
-    int32_t i, num_add = INT32_MAX;
-    for (i = 0; i < cms->depth; ++i) {
+    int32_t num_add = INT32_MAX;
+    for (unsigned int i = 0; i < cms->depth; ++i) {
         uint32_t bin = (hashes[i] % cms->width) + (i * cms->width);
         if (cms->bins[bin] < num_add) {
             num_add = cms->bins[bin];
@@ -150,13 +150,13 @@ int32_t cms_check(CountMinSketch* cms, const char* key) {
     return num_add;
 }
 
-int32_t cms_check_mean_alt(CountMinSketch* cms, uint64_t* hashes, int num_hashes) {
+int32_t cms_check_mean_alt(CountMinSketch* cms, uint64_t* hashes, unsigned int num_hashes) {
     if (num_hashes < cms->depth) {
         fprintf(stderr, "Insufficient hashes to complete the mean lookup of the element to the count-min sketch!");
         return CMS_ERROR;
     }
-    int32_t i, num_add = 0;
-    for (i = 0; i < cms->depth; ++i) {
+    int32_t num_add = 0;
+    for (unsigned int i = 0; i < cms->depth; ++i) {
         uint32_t bin = (hashes[i] % cms->width) + (i * cms->width);
         num_add += cms->bins[bin];
     }
@@ -170,14 +170,14 @@ int32_t cms_check_mean(CountMinSketch* cms, const char* key) {
     return num_add;
 }
 
-int32_t cms_check_mean_min_alt(CountMinSketch* cms, uint64_t* hashes, int num_hashes) {
+int32_t cms_check_mean_min_alt(CountMinSketch* cms, uint64_t* hashes, unsigned int num_hashes) {
     if (num_hashes < cms->depth) {
         fprintf(stderr, "Insufficient hashes to complete the mean-min lookup of the element to the count-min sketch!");
         return CMS_ERROR;
     }
-    int32_t i, num_add = 0;
-    int64_t* mean_min_values = calloc(cms->depth, sizeof(int64_t));
-    for (i = 0; i < cms->depth; ++i) {
+    int32_t num_add = 0;
+    int64_t* mean_min_values = (int64_t*)calloc(cms->depth, sizeof(int64_t));
+    for (unsigned int i = 0; i < cms->depth; ++i) {
         uint32_t bin = (hashes[i] % cms->width) + (i * cms->width);
         int32_t val = cms->bins[bin];
         mean_min_values[i] = val - ((cms->elements_added - val) / (cms->width - 1));
@@ -201,7 +201,7 @@ int32_t cms_check_mean_min(CountMinSketch* cms, const char* key) {
     return num_add;
 }
 
-uint64_t* cms_get_hashes_alt(CountMinSketch* cms, int num_hashes, const char* key) {
+uint64_t* cms_get_hashes_alt(CountMinSketch* cms, unsigned int num_hashes, const char* key) {
     return cms->hash_function(num_hashes, key);
 }
 
@@ -287,7 +287,7 @@ static int __setup_cms(CountMinSketch* cms, unsigned int width, unsigned int dep
     cms->confidence = confidence;
     cms->error_rate = error_rate;
     cms->elements_added = 0;
-    cms->bins = calloc((width * depth), sizeof(int32_t));
+    cms->bins = (int32_t*)calloc((width * depth), sizeof(int32_t));
     cms->hash_function = (hash_function == NULL) ? __default_hash : hash_function;
 
     if (NULL == cms->bins) {
@@ -329,9 +329,9 @@ static void __read_from_file(CountMinSketch* cms, FILE *fp, short on_disk, const
     fread(&cms->elements_added, sizeof(int64_t), 1, fp);
 
     rewind(fp);
-    long length = cms->width * cms->depth;
+    size_t length = cms->width * cms->depth;
     if (on_disk == 0) {
-        cms->bins = malloc(length * sizeof(int32_t));
+        cms->bins = (int32_t*)malloc(length * sizeof(int32_t));
         size_t read = fread(cms->bins, sizeof(int32_t), length, fp);
         if (read != length) {
             perror("__read_from_file: ");
@@ -388,12 +388,11 @@ static int __validate_merge(CountMinSketch* base, int num_sketches, va_list* arg
 }
 
 /* NOTE: The caller will free the results */
-static uint64_t* __default_hash(int num_hashes, const char* str) {
-    uint64_t *results = calloc(num_hashes, sizeof(uint64_t));
-    int i;
+static uint64_t* __default_hash(unsigned int num_hashes, const char* str) {
+    uint64_t *results = (uint64_t*)calloc(num_hashes, sizeof(uint64_t));
     char key[17] = {0}; // largest value is 7FFF,FFFF,FFFF,FFFF
     results[0] = __fnv_1a(str);
-    for (i = 1; i < num_hashes; ++i) {
+    for (unsigned int i = 1; i < num_hashes; ++i) {
         sprintf(key, "%" PRIx64 "", results[i-1]);
         results[i] = __fnv_1a(key);
     }
