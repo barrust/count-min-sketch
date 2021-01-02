@@ -148,7 +148,7 @@ int main(int argc, char** argv) {
     printf("Count-Min Sketch: clear: ");
     result = 0;
     cms_clear(&cms);
-    for (i = 0; i < cms.depth * cms.width; ++i) {
+    for (unsigned int i = 0; i < cms.depth * cms.width; ++i) {
         if (cms.bins[i] != 0) {
             result = 1;
         }

@@ -2,7 +2,7 @@ CC=gcc
 TESTDIR=tests
 DISTDIR=dist
 SRCDIR=src
-COMPFLAGS=-lm -Wall -Wpedantic -Winline
+COMPFLAGS=-lm -Wall -Wpedantic -Winline -Wno-long-long
 
 
 all: count_min_sketch
@@ -20,6 +20,9 @@ sanitize: test
 test: COMPFLAGS += -coverage
 test: count_min_sketch
 	$(CC) $(DISTDIR)/count_min_sketch.o $(TESTDIR)/test_cms.c $(CCFLAGS) $(COMPFLAGS) -lcrypto -o ./$(DISTDIR)/test -g
+
+runtests:
+	@ if [ -f "./$(DISTDIR)/test" ]; then ./$(DISTDIR)/test; fi
 
 clean:
 	if [ -f "./$(DISTDIR)/count_min_sketch.o" ]; then rm -r ./$(DISTDIR)/count_min_sketch.o; fi
