@@ -94,7 +94,7 @@ MU_TEST(test_insertions_different) {
 }
 
 MU_TEST(test_insertions_max) {
-    uint32_t too_large = (uint32_t)INT32_MAX + 5;
+    uint64_t too_large = (uint32_t)INT32_MAX + 5;
     mu_assert_int_eq(INT32_MAX, cms_add_inc(&cms, "this is a test", too_large));
     mu_assert_int_eq(too_large, cms.elements_added);
     mu_assert_int_eq(INT32_MAX, cms_add_inc(&cms, "this is a test", 2));
@@ -270,7 +270,7 @@ MU_TEST(test_cms_export) {
     cms_export(&cms, "./tests/test.cms");
     char digest[33] = {0};
     calculate_md5sum("./tests/test.cms", digest);
-    mu_assert_string_eq("61d2ea9d0cb09b7bb284e1cf1a860449", digest);
+    mu_assert_string_eq("a53b06b40aae73ae2b8fc6c9dd113781", digest);
     remove("./tests/test.cms");
 }
 
