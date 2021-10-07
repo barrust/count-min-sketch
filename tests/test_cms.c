@@ -270,7 +270,7 @@ MU_TEST(test_cms_export) {
     cms_export(&cms, "./tests/test.cms");
     char digest[33] = {0};
     calculate_md5sum("./tests/test.cms", digest);
-    mu_assert_string_eq("a53b06b40aae73ae2b8fc6c9dd113781", digest);
+    mu_assert_string_eq("fb1c39dd1a73f1ef0d7fc79f60fc028e", digest);
     remove("./tests/test.cms");
 }
 
