@@ -1,7 +1,7 @@
 /*******************************************************************************
 ***     Author: Tyler Barrus
 ***     email:  barrust@gmail.com
-***     Version: 0.1.8
+***     Version: 0.2.0
 ***     License: MIT 2017
 *******************************************************************************/
 
@@ -24,7 +24,7 @@ static void __read_from_file(CountMinSketch* cms, FILE *fp, short on_disk, const
 static void __merge_cms(CountMinSketch* base, int num_sketches, va_list* args);
 static int __validate_merge(CountMinSketch* base, int num_sketches, va_list* args);
 static uint64_t* __default_hash(unsigned int num_hashes, const char* key);
-static uint64_t __fnv_1a(const char* key);
+static uint64_t __fnv_1a(const char* key, int seed);
 static int __compare(const void * a, const void * b);
 static int32_t __safe_add(int32_t a, uint32_t b);
 static int32_t __safe_sub(int32_t a, uint32_t b);
@@ -389,20 +389,18 @@ static int __validate_merge(CountMinSketch* base, int num_sketches, va_list* arg
 
 /* NOTE: The caller will free the results */
 static uint64_t* __default_hash(unsigned int num_hashes, const char* str) {
-    uint64_t *results = (uint64_t*)calloc(num_hashes, sizeof(uint64_t));
-    char key[17] = {0}; // largest value is 7FFF,FFFF,FFFF,FFFF
-    results[0] = __fnv_1a(str);
-    for (unsigned int i = 1; i < num_hashes; ++i) {
-        sprintf(key, "%" PRIx64 "", results[i-1]);
-        results[i] = __fnv_1a(key);
+    uint64_t* results = (uint64_t*)calloc(num_hashes, sizeof(uint64_t));
+    int i;
+    for (i = 0; i < num_hashes; ++i) {
+        results[i] = __fnv_1a(str, i);
     }
     return results;
 }
 
-static uint64_t __fnv_1a(const char* key) {
+static uint64_t __fnv_1a(const char* key, int seed) {
     // FNV-1a hash (http://www.isthe.com/chongo/tech/comp/fnv/)
     int i, len = strlen(key);
-    uint64_t h = 14695981039346656037ULL; // FNV_OFFSET 64 bit
+    uint64_t h = 14695981039346656037ULL + (31 * seed); // FNV_OFFSET 64 bit with magic number seed
     for (i = 0; i < len; ++i){
             h = h ^ (unsigned char) key[i];
             h = h * 1099511628211ULL; // FNV_PRIME 64 bit
