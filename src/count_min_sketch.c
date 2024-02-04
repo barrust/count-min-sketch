@@ -358,6 +358,7 @@ static void __read_from_file(CountMinSketch* cms, FILE *fp, short on_disk, const
     rewind(fp);
     size_t length = cms->width * cms->depth;
     if (on_disk == 0) {
+        cms->managed = 1;
         cms->bins = (int32_t*)malloc(length * sizeof(int32_t));
         size_t read = fread(cms->bins, sizeof(int32_t), length, fp);
         if (read != length) {
