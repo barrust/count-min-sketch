@@ -29,12 +29,26 @@ static int __compare(const void * a, const void * b);
 static int32_t __safe_add(int32_t a, uint32_t b);
 static int32_t __safe_sub(int32_t a, uint32_t b);
 static int32_t __safe_add_2(int32_t a, int32_t b);
+static int __valid_construct(unsigned int width, unsigned int depth);
 
 // Compatibility with non-clang compilers
 #ifndef __has_builtin
     #define __has_builtin(x) 0
 #endif
 
+// We could probably re-write the other constructors in terms of this one
+int cms_init_custom_buffer_alt(CountMinSketch* cms, unsigned int width, unsigned int depth, int32_t* buffer, cms_hash_function hash_function) {
+    if (!__valid_construct(width, depth)) {
+        // Should we really be printing from library code?
+        fprintf(stderr, "Unable to initialize the count-min sketch since either width or depth is 0!\n");
+        return CMS_ERROR;
+    }
+    double confidence = 1 - (1 / pow(2, depth));
+    double error_rate = 2 / (double) width;
+    cms->managed = 0;
+    cms->bins = buffer;
+    return __setup_cms(cms, width, depth, error_rate, confidence, hash_function);
+}
 
 int cms_init_optimal_alt(CountMinSketch* cms, double error_rate, double confidence, cms_hash_function hash_function) {
     /* https://cs.stackexchange.com/q/44803 */
@@ -44,21 +58,24 @@ int cms_init_optimal_alt(CountMinSketch* cms, double error_rate, double confiden
     }
     uint32_t width = ceil(2 / error_rate);
     uint32_t depth = ceil((-1 * log(1 - confidence)) / LOG_TWO);
+    cms->managed = 1;
     return __setup_cms(cms, width, depth, error_rate, confidence, hash_function);
 }
 
 int cms_init_alt(CountMinSketch* cms, uint32_t width, uint32_t depth, cms_hash_function hash_function) {
-    if (depth < 1 || width < 1) {
+    if (!__valid_construct(width, depth)) {
         fprintf(stderr, "Unable to initialize the count-min sketch since either width or depth is 0!\n");
         return CMS_ERROR;
     }
     double confidence = 1 - (1 / pow(2, depth));
     double error_rate = 2 / (double) width;
+    cms->managed = 1;
     return __setup_cms(cms, width, depth, error_rate, confidence, hash_function);
 }
 
 int cms_destroy(CountMinSketch* cms) {
-    free(cms->bins);
+    if (cms->managed)
+        free(cms->bins);
     cms->width = 0;
     cms->depth = 0;
     cms->confidence = 0.0;
@@ -245,6 +262,7 @@ int cms_merge(CountMinSketch* cms, int num_sketches, ...) {
     /* Merge */
     va_start(ap, num_sketches);
     base = (CountMinSketch *) va_arg(ap, CountMinSketch *);
+    cms->managed = 1;
     if (CMS_ERROR == __setup_cms(cms, base->width, base->depth, base->error_rate, base->confidence, base->hash_function)) {
         va_end(ap);
         return CMS_ERROR;
@@ -281,18 +299,27 @@ int cms_merge_into(CountMinSketch* cms, int num_sketches, ...) {
 /*******************************************************************************
 *    PRIVATE FUNCTIONS
 *******************************************************************************/
+
+static int __valid_construct(unsigned int width, unsigned int depth)
+{
+    return width > 0 && depth > 0;
+}
+
 static int __setup_cms(CountMinSketch* cms, unsigned int width, unsigned int depth, double error_rate, double confidence, cms_hash_function hash_function) {
     cms->width = width;
     cms->depth = depth;
     cms->confidence = confidence;
     cms->error_rate = error_rate;
     cms->elements_added = 0;
-    cms->bins = (int32_t*)calloc((width * depth), sizeof(int32_t));
     cms->hash_function = (hash_function == NULL) ? __default_hash : hash_function;
 
-    if (NULL == cms->bins) {
-        fprintf(stderr, "Failed to allocate %zu bytes for bins!", ((width * depth) * sizeof(int32_t)));
-        return CMS_ERROR;
+    if (cms->managed) {
+        cms->bins = (int32_t*)calloc((width * depth), sizeof(int32_t));
+
+        if (NULL == cms->bins) {
+            fprintf(stderr, "Failed to allocate %zu bytes for bins!", ((width * depth) * sizeof(int32_t)));
+            return CMS_ERROR;
+        }
     }
     return CMS_SUCCESS;
 }

@@ -42,6 +42,7 @@ typedef struct {
     double error_rate;
     cms_hash_function hash_function;
     int32_t* bins;
+    uint32_t managed: 1;
 }  CountMinSketch, count_min_sketch;
 
 
@@ -67,6 +68,32 @@ static __inline__ int cms_init(CountMinSketch* cms, unsigned int width, unsigned
 int cms_init_optimal_alt(CountMinSketch* cms, double error_rate, double confidence, cms_hash_function hash_function);
 static __inline__ int cms_init_optimal(CountMinSketch* cms, float error_rate, float confidence) {
     return cms_init_optimal_alt(cms, error_rate, confidence, NULL);
+}
+
+/*  Initialize the count-min sketch based on user defined width and depth
+    This version takes a custom buffer, which **must** be of at least
+    sizeof(int32_t) * width * depth size
+    width and depth must be positive integers
+
+    Passing to cms_destroy() is safe; the buffer remains untouched
+    You must manage your own buffer as required
+    For advanced users only
+
+    Returns:
+        CMS_SUCCESS
+        CMS_ERROR   -   when width or depth are 0 or negative */
+int cms_init_custom_buffer_alt(
+    CountMinSketch* cms,
+    unsigned int width,
+    unsigned int depth,
+    int32_t* buffer,
+    cms_hash_function hash_function);
+static __inline__ int cms_init_custom_buffer(
+    CountMinSketch* cms,
+    unsigned int width,
+    unsigned int depth,
+    int32_t* buffer) {
+    return cms_init_custom_buffer_alt(cms, width, depth, buffer, NULL);
 }
 
 
