@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include <openssl/evp.h>
 #include <openssl/md5.h>
 
 #include "minunit.h"
@@ -448,18 +449,39 @@ static int calculate_md5sum(const char* filename, char* digest) {
     }
 
     int n;
-    MD5_CTX c;
     char buf[512];
     ssize_t bytes;
     unsigned char out[MD5_DIGEST_LENGTH];
-
-    MD5_Init(&c);
+    EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
+    if (mdctx == NULL) {
+        perror("EVP_MD_CTX_new failed");
+        fclose(file_ptr);
+        return 1;
+    }
+    if (EVP_DigestInit_ex(mdctx, EVP_md5(), NULL) != 1) {
+        perror("EVP_DigestInit_ex failed");
+        EVP_MD_CTX_free(mdctx);
+        fclose(file_ptr);
+        return 1;
+    }
     do {
         bytes = fread(buf, 1, 512, file_ptr);
-        MD5_Update(&c, buf, bytes);
+        if (bytes > 0) {
+            if (EVP_DigestUpdate(mdctx, buf, bytes) != 1) {
+                perror("EVP_DigestUpdate failed");
+                EVP_MD_CTX_free(mdctx);
+                fclose(file_ptr);
+                return 1;
+            }
+        }
     } while(bytes > 0);
-
-    MD5_Final(out, &c);
+    if (EVP_DigestFinal_ex(mdctx, out, NULL) != 1) {
+        perror("EVP_DigestFinal_ex failed");
+        EVP_MD_CTX_free(mdctx);
+        fclose(file_ptr);
+        return 1;
+    }
+    EVP_MD_CTX_free(mdctx);
 
     for (n = 0; n < MD5_DIGEST_LENGTH; n++) {
         char hex[3] = {0};
@@ -472,3 +494,4 @@ static int calculate_md5sum(const char* filename, char* digest) {
 
     return 0;
 }
+
