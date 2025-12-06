@@ -88,7 +88,7 @@ int cms_clear(CountMinSketch* cms);
     Return:
         CMS_SUCCESS - When file is opened and written
         CMS_ERROR   - When file is unable to be opened */
-int cms_export(CountMinSketch* cms, const char* filepath);
+int cms_export(const CountMinSketch* cms, const char* filepath);
 
 /*  Import count-min sketch from file
 
@@ -123,13 +123,13 @@ static __inline__ int cms_import(CountMinSketch* cms, const char* filepath) {
 
 /* Add the provided key to the count-min sketch `x` times */
 int32_t cms_add_inc(CountMinSketch* cms, const char* key, uint32_t x);
-int32_t cms_add_inc_alt(CountMinSketch* cms, uint64_t* hashes, unsigned int num_hashes, uint32_t x);
+int32_t cms_add_inc_alt(CountMinSketch* cms, const uint64_t* hashes, unsigned int num_hashes, uint32_t x);
 
 /* Add the provided key to the count-min sketch */
 static __inline__ int32_t cms_add(CountMinSketch* cms, const char* key) {
     return cms_add_inc(cms, key, 1);
 }
-static __inline__ int32_t cms_add_alt(CountMinSketch* cms, uint64_t* hashes, unsigned int num_hashes) {
+static __inline__ int32_t cms_add_alt(CountMinSketch* cms, const uint64_t* hashes, unsigned int num_hashes) {
     return cms_add_inc_alt(cms, hashes, num_hashes, 1);
 }
 
@@ -137,7 +137,7 @@ static __inline__ int32_t cms_add_alt(CountMinSketch* cms, uint64_t* hashes, uns
     NOTE: Result Values can be negative
     NOTE: Best check method when remove is used is `cms_check_mean` */
 int32_t cms_remove_inc(CountMinSketch* cms, const char* key, uint32_t x);
-int32_t cms_remove_inc_alt(CountMinSketch* cms, uint64_t* hashes, unsigned int num_hashes, uint32_t x);
+int32_t cms_remove_inc_alt(CountMinSketch* cms, const uint64_t* hashes, unsigned int num_hashes, uint32_t x);
 
 /*  Remove the provided key to the count-min sketch;
     NOTE: Result Values can be negative
@@ -145,17 +145,17 @@ int32_t cms_remove_inc_alt(CountMinSketch* cms, uint64_t* hashes, unsigned int n
 static __inline__ int32_t cms_remove(CountMinSketch* cms, const char* key) {
     return cms_remove_inc(cms, key, 1);
 }
-static __inline__ int32_t cms_remove_alt(CountMinSketch* cms, uint64_t* hashes, unsigned int num_hashes) {
+static __inline__ int32_t cms_remove_alt(CountMinSketch* cms, const uint64_t* hashes, unsigned int num_hashes) {
     return cms_remove_inc_alt(cms, hashes, num_hashes, 1);
 }
 
 /* Determine the maximum number of times the key may have been inserted */
 int32_t cms_check(CountMinSketch* cms, const char* key);
-int32_t cms_check_alt(CountMinSketch* cms, uint64_t* hashes, unsigned int num_hashes);
+int32_t cms_check_alt(CountMinSketch* cms, const uint64_t* hashes, unsigned int num_hashes);
 static __inline__ int32_t cms_check_min(CountMinSketch* cms, const char* key) {
     return cms_check(cms, key);
 }
-static __inline__ int32_t cms_check_min_alt(CountMinSketch* cms, uint64_t* hashes, unsigned int num_hashes) {
+static __inline__ int32_t cms_check_min_alt(CountMinSketch* cms, const uint64_t* hashes, unsigned int num_hashes) {
     return cms_check_alt(cms, hashes, num_hashes);
 }
 
@@ -163,10 +163,10 @@ static __inline__ int32_t cms_check_min_alt(CountMinSketch* cms, uint64_t* hashe
     NOTE: Mean check increases the over counting but is a `better` strategy
     when removes are added and negatives are possible */
 int32_t cms_check_mean(CountMinSketch* cms, const char* key);
-int32_t cms_check_mean_alt(CountMinSketch* cms, uint64_t* hashes, unsigned int num_hashes);
+int32_t cms_check_mean_alt(CountMinSketch* cms, const uint64_t* hashes, unsigned int num_hashes);
 
 int32_t cms_check_mean_min(CountMinSketch* cms, const char* key);
-int32_t cms_check_mean_min_alt(CountMinSketch* cms, uint64_t* hashes, unsigned int num_hashes);
+int32_t cms_check_mean_min_alt(CountMinSketch* cms, const uint64_t* hashes, unsigned int num_hashes);
 
 /*  Return the hashes for the provided key based on the hashing function of
     the count-min sketch
