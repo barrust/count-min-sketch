@@ -215,6 +215,32 @@ int main(int argc, char** argv) {
 
     cms_destroy(&cms);
 
+    printf("Count-Min Sketch: setup using custom buffer (unmanaged): ");
+    int32_t buffer[2000 * 17] = { 0 };
+    cms_init_custom_buffer(&cms, 2000, 17, buffer);
+    if (!cms.managed) {
+        success_or_failure(0);
+    } else {
+        success_or_failure(1);
+    }
+
+    printf("Count-Min Sketch: set up width and depth: ");
+    if (cms.width == 2000 && cms.depth == 17) {
+        success_or_failure(0);
+    } else {
+        success_or_failure(1);
+    }
+
+    printf("Count-Min Sketch: buffer is correct: ");
+    if (cms.bins == buffer) {
+        success_or_failure(0);
+    } else {
+        success_or_failure(1);
+    }
+
+    // If free() is called on buffer[][], this should segfault
+    cms_destroy(&cms);
+
     printf("Count-Min Sketch: import: ");
     result = 0;
     result = cms_import(&cms, "./dist/test_export.cms");
