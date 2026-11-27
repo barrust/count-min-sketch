@@ -491,6 +491,42 @@ MU_TEST(test_cms_import_invalid) {
     fwrite(&elements, sizeof(int64_t), 1, fp);
     fclose(fp);
     mu_assert_int_eq(CMS_ERROR, cms_import(&c, filepath));
+
+    /*  large dimensions in a small file: rejected before allocating, as width * depth * 4 bytes
+        (16 GB here) is more than the file holds */
+    width = 65536;
+    depth = 65535;
+    fp = fopen(filepath, "wb");
+    fwrite(&bin, sizeof(int32_t), 1, fp);
+    fwrite(&width, sizeof(uint32_t), 1, fp);
+    fwrite(&depth, sizeof(uint32_t), 1, fp);
+    fwrite(&elements, sizeof(int64_t), 1, fp);
+    fclose(fp);
+    mu_assert_int_eq(CMS_ERROR, cms_import(&c, filepath));
+
+    /* a valid footer after one bin more than it describes (31 bins for 10 x 3): it was imported */
+    width = 10;
+    depth = 3;
+    fp = fopen(filepath, "wb");
+    for (int i = 0; i < 31; ++i) {
+        fwrite(&bin, sizeof(int32_t), 1, fp);
+    }
+    fwrite(&width, sizeof(uint32_t), 1, fp);
+    fwrite(&depth, sizeof(uint32_t), 1, fp);
+    fwrite(&elements, sizeof(int64_t), 1, fp);
+    fclose(fp);
+    mu_assert_int_eq(CMS_ERROR, cms_import(&c, filepath));
+
+    CountMinSketch valid;
+    cms_init(&valid, 10, 3);
+    cms_add(&valid, "a");
+
+    /* and without it, it imports */
+    cms_export(&valid, filepath);
+    mu_assert_int_eq(CMS_SUCCESS, cms_import(&c, filepath));
+    mu_assert_int_eq(1, cms_check(&c, "a"));
+    cms_destroy(&c);
+    cms_destroy(&valid);
     remove(filepath);
 }
 

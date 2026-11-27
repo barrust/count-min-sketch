@@ -382,11 +382,23 @@ static int __read_from_file(CountMinSketch* cms, FILE *fp, short on_disk, const 
         return CMS_ERROR;
     }
 
+    /*  The file must be exactly the bins and the footer: check before allocating, so a footer
+        with large dimensions cannot make it allocate more than the file holds */
+    if (fseek(fp, 0, SEEK_END) != 0) {
+        return CMS_ERROR;
+    }
+    long file_size = ftell(fp);
+    uint64_t expected = (uint64_t)width * depth * sizeof(int32_t) + (uint64_t)offset;
+    if (file_size < 0 || (uint64_t)file_size != expected) {
+        return CMS_ERROR;
+    }
+
     rewind(fp);
-    size_t length = (size_t)width * depth;
+    size_t length = (size_t)width * depth;  // fits: __valid_dimensions limits it to UINT32_MAX
     int32_t* bins = NULL;
     if (on_disk == 0) {
-        bins = (int32_t*)malloc(length * sizeof(int32_t));
+        // calloc checks length * sizeof(int32_t) for overflow, which malloc did not (32-bit size_t)
+        bins = (int32_t*)calloc(length, sizeof(int32_t));
         if (bins == NULL || fread(bins, sizeof(int32_t), length, fp) != length) {
             free(bins);
             return CMS_ERROR;
