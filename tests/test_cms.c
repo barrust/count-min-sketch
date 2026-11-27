@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <openssl/evp.h>
 #include <openssl/md5.h>
@@ -376,6 +377,209 @@ MU_TEST(test_cms_merge_mismatch) {
 
 
 
+/*******************************************************************************
+*   Code review fixes
+*******************************************************************************/
+/* set the bin of each row that `key` maps to */
+static void __set_key_bins(CountMinSketch* c, const char* key, const int32_t* values) {
+    uint64_t* hashes = cms_get_hashes(c, key);
+    for (unsigned int i = 0; i < c->depth; ++i) {
+        c->bins[(hashes[i] % c->width) + (i * c->width)] = values[i];
+    }
+    free(hashes);
+}
+
+MU_TEST(test_cms_init_dimensions_overflow) {
+    CountMinSketch c;
+    /* width * depth overflowed an unsigned int, allocating too little; the first add crashed */
+    mu_assert_int_eq(CMS_ERROR, cms_init(&c, 65536, 65537));
+    mu_assert_int_eq(CMS_ERROR, cms_init(&c, 70000, 70000));
+    mu_assert_int_eq(CMS_ERROR, cms_init(&c, 0, 5));
+    mu_assert_int_eq(CMS_ERROR, cms_init(&c, 5, 0));
+}
+
+MU_TEST(test_cms_init_optimal_invalid) {
+    CountMinSketch c;
+    /* these converted infinity to an unsigned int, or gave a depth of 0 */
+    mu_assert_int_eq(CMS_ERROR, cms_init_optimal(&c, 0.0, 0.5));
+    mu_assert_int_eq(CMS_ERROR, cms_init_optimal(&c, 0.1, 1.0));
+    mu_assert_int_eq(CMS_ERROR, cms_init_optimal(&c, 0.1, 0.0));
+    mu_assert_int_eq(CMS_ERROR, cms_init_optimal(&c, 1e-12, 0.5));  /* a width over UINT32_MAX */
+    /* a confidence too small to change 1 - confidence still gets one row */
+    mu_assert_int_eq(CMS_SUCCESS, cms_init_optimal(&c, 0.1, 1e-20));
+    mu_assert_int_eq(1, c.depth);
+    cms_destroy(&c);
+}
+
+MU_TEST(test_cms_check_mean_saturated) {
+    CountMinSketch c;
+    cms_init(&c, 10, 4);
+    cms_add_inc(&c, "a", 2000000000);
+    cms_add_inc(&c, "a", 2000000000);  /* every row saturates at INT32_MAX */
+    /* the mean summed in an int32, which overflowed (it returned 1073741823) */
+    mu_assert_int_eq(INT32_MAX, cms_check_mean(&c, "a"));
+    cms_destroy(&c);
+}
+
+MU_TEST(test_cms_mean_min_large_values) {
+    CountMinSketch c;
+    cms_init(&c, 3, 3);
+    cms_add(&c, "a");
+    /*  With 4e9 elements and these bins the mean-min values are 1e9, -5e9, and -2e9: their
+        differences do not fit in an int, which the comparison truncated */
+    const int32_t values[3] = {2000000000, -2000000000, 0};
+    __set_key_bins(&c, "a", values);
+    c.elements_added = 4000000000LL;
+    mu_assert_int_eq(-2000000000, cms_check_mean_min(&c, "a"));
+
+    /* a median beyond the int32 range is clamped (it wrapped around) */
+    const int32_t high[3] = {2000000000, 2000000000, 2000000000};
+    __set_key_bins(&c, "a", high);
+    c.elements_added = -9000000000LL;  /* each mean-min value is 7.5e9 */
+    mu_assert_int_eq(INT32_MAX, cms_check_mean_min(&c, "a"));
+    cms_destroy(&c);
+}
+
+MU_TEST(test_cms_mean_min_width_one) {
+    CountMinSketch c;
+    cms_init(&c, 1, 3);
+    cms_add(&c, "a");
+    cms_add_inc(&c, "b", 2);
+    /* with a single column there is no noise to estimate (it divided by zero) */
+    mu_assert_int_eq(3, cms_check_mean_min(&c, "a"));
+    cms_destroy(&c);
+}
+
+MU_TEST(test_cms_merge_keeps_saturation) {
+    CountMinSketch a, b;
+    cms_init(&a, 10, 3);
+    cms_init(&b, 10, 3);
+    cms_remove_inc(&a, "x", 10);
+    cms_add_inc(&b, "x", UINT32_MAX);  /* saturates at INT32_MAX */
+    mu_assert_int_eq(CMS_SUCCESS, cms_merge_into(&a, 1, &b));
+    mu_assert_int_eq(INT32_MAX, cms_check(&a, "x"));  /* it became INT32_MAX - 10 */
+
+    cms_clear(&a);
+    cms_clear(&b);
+    cms_add_inc(&a, "x", 10);
+    cms_remove_inc(&b, "x", UINT32_MAX);  /* saturates at INT32_MIN */
+    mu_assert_int_eq(CMS_SUCCESS, cms_merge_into(&a, 1, &b));
+    mu_assert_int_eq(INT32_MIN, cms_check(&a, "x"));
+    cms_destroy(&a);
+    cms_destroy(&b);
+}
+
+MU_TEST(test_cms_import_invalid) {
+    CountMinSketch c;
+    char filepath[] = "./tests/test_invalid.cms";
+    /* a footer with a width of 0 */
+    FILE* fp = fopen(filepath, "wb");
+    uint32_t width = 0, depth = 3;
+    int64_t elements = 0;
+    fwrite(&width, sizeof(uint32_t), 1, fp);
+    fwrite(&depth, sizeof(uint32_t), 1, fp);
+    fwrite(&elements, sizeof(int64_t), 1, fp);
+    fclose(fp);
+    mu_assert_int_eq(CMS_ERROR, cms_import(&c, filepath));
+
+    /* a valid footer with too few bins (it called exit(1)) */
+    width = 10;
+    fp = fopen(filepath, "wb");
+    int32_t bin = 0;
+    fwrite(&bin, sizeof(int32_t), 1, fp);
+    fwrite(&width, sizeof(uint32_t), 1, fp);
+    fwrite(&depth, sizeof(uint32_t), 1, fp);
+    fwrite(&elements, sizeof(int64_t), 1, fp);
+    fclose(fp);
+    mu_assert_int_eq(CMS_ERROR, cms_import(&c, filepath));
+
+    /*  large dimensions in a small file: rejected before allocating, as width * depth * 4 bytes
+        (16 GB here) is more than the file holds */
+    width = 65536;
+    depth = 65535;
+    fp = fopen(filepath, "wb");
+    fwrite(&bin, sizeof(int32_t), 1, fp);
+    fwrite(&width, sizeof(uint32_t), 1, fp);
+    fwrite(&depth, sizeof(uint32_t), 1, fp);
+    fwrite(&elements, sizeof(int64_t), 1, fp);
+    fclose(fp);
+    mu_assert_int_eq(CMS_ERROR, cms_import(&c, filepath));
+
+    /* a valid footer after one bin more than it describes (31 bins for 10 x 3): it was imported */
+    width = 10;
+    depth = 3;
+    fp = fopen(filepath, "wb");
+    for (int i = 0; i < 31; ++i) {
+        fwrite(&bin, sizeof(int32_t), 1, fp);
+    }
+    fwrite(&width, sizeof(uint32_t), 1, fp);
+    fwrite(&depth, sizeof(uint32_t), 1, fp);
+    fwrite(&elements, sizeof(int64_t), 1, fp);
+    fclose(fp);
+    mu_assert_int_eq(CMS_ERROR, cms_import(&c, filepath));
+
+    CountMinSketch valid;
+    cms_init(&valid, 10, 3);
+    cms_add(&valid, "a");
+
+    /* and without it, it imports */
+    cms_export(&valid, filepath);
+    mu_assert_int_eq(CMS_SUCCESS, cms_import(&c, filepath));
+    mu_assert_int_eq(1, cms_check(&c, "a"));
+    cms_destroy(&c);
+    cms_destroy(&valid);
+    remove(filepath);
+}
+
+MU_TEST(test_cms_export_matches_bins) {
+    /* the export is the bins in memory order, then the footer */
+    CountMinSketch c;
+    cms_init(&c, 100, 4);
+    for (int i = 0; i < 1000; ++i) {
+        char key[16] = {0};
+        sprintf(key, "%d", i);
+        cms_add_inc(&c, key, (uint32_t)(i % 5 + 1));
+    }
+    char filepath[] = "./tests/test_export_bins.cms";
+    cms_export(&c, filepath);
+    FILE* fp = fopen(filepath, "rb");
+    int32_t* bins = (int32_t*)calloc(400, sizeof(int32_t));
+    uint32_t width = 0, depth = 0;
+    int64_t elements = 0;
+    mu_assert_int_eq(400, fread(bins, sizeof(int32_t), 400, fp));
+    mu_assert_int_eq(1, fread(&width, sizeof(uint32_t), 1, fp));
+    mu_assert_int_eq(1, fread(&depth, sizeof(uint32_t), 1, fp));
+    mu_assert_int_eq(1, fread(&elements, sizeof(int64_t), 1, fp));
+    mu_assert_int_eq(EOF, fgetc(fp));
+    fclose(fp);
+    mu_assert_int_eq(0, memcmp(bins, c.bins, 400 * sizeof(int32_t)));
+    mu_assert_int_eq(100, width);
+    mu_assert_int_eq(4, depth);
+    mu_assert(elements == c.elements_added, "elements added should match");
+    free(bins);
+    remove(filepath);
+    cms_destroy(&c);
+}
+
+/* a hash function that cannot allocate its results */
+static uint64_t* __null_hash(unsigned int num_hashes, const char* key) {
+    (void)num_hashes;
+    (void)key;
+    return NULL;
+}
+
+MU_TEST(test_cms_hash_allocation_failure) {
+    CountMinSketch c;
+    mu_assert_int_eq(CMS_SUCCESS, cms_init_alt(&c, 10, 3, __null_hash));
+    mu_assert_int_eq(CMS_ERROR, cms_add(&c, "a"));
+    mu_assert_int_eq(CMS_ERROR, cms_remove(&c, "a"));
+    mu_assert_int_eq(CMS_ERROR, cms_check(&c, "a"));
+    mu_assert_int_eq(CMS_ERROR, cms_check_mean(&c, "a"));
+    mu_assert_int_eq(CMS_ERROR, cms_check_mean_min(&c, "a"));
+    mu_assert_int_eq(0, c.elements_added);
+    cms_destroy(&c);
+}
+
 MU_TEST_SUITE(test_suite) {
     MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
@@ -420,6 +624,15 @@ MU_TEST_SUITE(test_suite) {
     MU_RUN_TEST(test_cms_merge_simple);
     MU_RUN_TEST(test_cms_merge_overflow_up);
     MU_RUN_TEST(test_cms_merge_overflow_down);
+    MU_RUN_TEST(test_cms_init_dimensions_overflow);
+    MU_RUN_TEST(test_cms_init_optimal_invalid);
+    MU_RUN_TEST(test_cms_check_mean_saturated);
+    MU_RUN_TEST(test_cms_mean_min_large_values);
+    MU_RUN_TEST(test_cms_mean_min_width_one);
+    MU_RUN_TEST(test_cms_merge_keeps_saturation);
+    MU_RUN_TEST(test_cms_import_invalid);
+    MU_RUN_TEST(test_cms_hash_allocation_failure);
+    MU_RUN_TEST(test_cms_export_matches_bins);
     MU_RUN_TEST(test_cms_merge_into);
     MU_RUN_TEST(test_cms_merge_into_mismatch);
     MU_RUN_TEST(test_cms_merge_mismatch);
