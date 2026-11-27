@@ -20,7 +20,8 @@
 /* private functions */
 static int __setup_cms(CountMinSketch* cms, uint32_t width, uint32_t depth, double error_rate, double confidence, cms_hash_function hash_function);
 static void __write_to_file(const CountMinSketch* cms, FILE *fp, short on_disk);
-static void __read_from_file(CountMinSketch* cms, FILE *fp, short on_disk, const char* filename);
+static int __read_from_file(CountMinSketch* cms, FILE *fp, short on_disk, const char* filename);
+static int __valid_dimensions(uint64_t width, uint64_t depth);
 static void __merge_cms(CountMinSketch* base, int num_sketches, va_list* args);
 static int __validate_merge(const CountMinSketch* base, int num_sketches, va_list* args);
 static uint64_t* __default_hash(unsigned int num_hashes, const char* key);
@@ -38,13 +39,20 @@ static int32_t __safe_add_2(int32_t a, int32_t b);
 
 int cms_init_optimal_alt(CountMinSketch* cms, double error_rate, double confidence, cms_hash_function hash_function) {
     /* https://cs.stackexchange.com/q/44803 */
-    if (error_rate < 0 || confidence < 0) {
-        fprintf(stderr, "Unable to initialize the count-min sketch since both error_rate and confidence must be positive!\n");
+    if (!(error_rate > 0) || !(confidence > 0 && confidence < 1)) {
+        fprintf(stderr, "Unable to initialize the count-min sketch since error_rate must be positive and confidence between 0 and 1!\n");
         return CMS_ERROR;
     }
-    uint32_t width = ceil(2 / error_rate);
-    uint32_t depth = ceil((-1 * log(1 - confidence)) / LOG_TWO);
-    return __setup_cms(cms, width, depth, error_rate, confidence, hash_function);
+    double width = ceil(2 / error_rate);
+    double depth = ceil((-1 * log(1 - confidence)) / LOG_TWO);
+    if (depth < 1) {  // a confidence too small to change 1 - confidence
+        depth = 1;
+    }
+    if (width > UINT32_MAX || depth > UINT32_MAX) {  // converting these to uint32_t would be undefined
+        fprintf(stderr, "Unable to initialize the count-min sketch since the error_rate or confidence needs too large a sketch!\n");
+        return CMS_ERROR;
+    }
+    return __setup_cms(cms, (uint32_t)width, (uint32_t)depth, error_rate, confidence, hash_function);
 }
 
 int cms_init_alt(CountMinSketch* cms, uint32_t width, uint32_t depth, cms_hash_function hash_function) {
@@ -99,6 +107,9 @@ int32_t cms_add_inc_alt(CountMinSketch* cms, const uint64_t* hashes, unsigned in
 
 int32_t cms_add_inc(CountMinSketch* cms, const char* key, unsigned int x) {
     uint64_t* hashes = cms_get_hashes(cms, key);
+    if (hashes == NULL) {  // the hash function could not allocate the hashes
+        return CMS_ERROR;
+    }
     int32_t num_add = cms_add_inc_alt(cms, hashes, cms->depth, x);
     free(hashes);
     return num_add;
@@ -123,6 +134,9 @@ int32_t cms_remove_inc_alt(CountMinSketch* cms, const uint64_t* hashes, unsigned
 
 int32_t cms_remove_inc(CountMinSketch* cms, const char* key, uint32_t x) {
     uint64_t* hashes = cms_get_hashes(cms, key);
+    if (hashes == NULL) {  // the hash function could not allocate the hashes
+        return CMS_ERROR;
+    }
     int32_t num_add = cms_remove_inc_alt(cms, hashes, cms->depth, x);
     free(hashes);
     return num_add;
@@ -145,6 +159,9 @@ int32_t cms_check_alt(CountMinSketch* cms, const uint64_t* hashes, unsigned int 
 
 int32_t cms_check(CountMinSketch* cms, const char* key) {
     uint64_t* hashes = cms_get_hashes(cms, key);
+    if (hashes == NULL) {  // the hash function could not allocate the hashes
+        return CMS_ERROR;
+    }
     int32_t num_add = cms_check_alt(cms, hashes, cms->depth);
     free(hashes);
     return num_add;
@@ -155,16 +172,19 @@ int32_t cms_check_mean_alt(CountMinSketch* cms, const uint64_t* hashes, unsigned
         fprintf(stderr, "Insufficient hashes to complete the mean lookup of the element to the count-min sketch!");
         return CMS_ERROR;
     }
-    int32_t num_add = 0;
+    int64_t total = 0;  // the sum of int32 bins can be larger than an int32
     for (unsigned int i = 0; i < cms->depth; ++i) {
         uint32_t bin = (hashes[i] % cms->width) + (i * cms->width);
-        num_add += cms->bins[bin];
+        total += cms->bins[bin];
     }
-    return num_add / cms->depth;
+    return (int32_t)(total / (int64_t)cms->depth);  // the mean of int32 values fits in an int32
 }
 
 int32_t cms_check_mean(CountMinSketch* cms, const char* key) {
     uint64_t* hashes = cms_get_hashes(cms, key);
+    if (hashes == NULL) {  // the hash function could not allocate the hashes
+        return CMS_ERROR;
+    }
     int32_t num_add = cms_check_mean_alt(cms, hashes, cms->depth);
     free(hashes);
     return num_add;
@@ -175,27 +195,43 @@ int32_t cms_check_mean_min_alt(CountMinSketch* cms, const uint64_t* hashes, unsi
         fprintf(stderr, "Insufficient hashes to complete the mean-min lookup of the element to the count-min sketch!");
         return CMS_ERROR;
     }
-    int32_t num_add = 0;
     int64_t* mean_min_values = (int64_t*)calloc(cms->depth, sizeof(int64_t));
+    if (mean_min_values == NULL) {
+        return CMS_ERROR;
+    }
     for (unsigned int i = 0; i < cms->depth; ++i) {
         uint32_t bin = (hashes[i] % cms->width) + (i * cms->width);
         int32_t val = cms->bins[bin];
-        mean_min_values[i] = val - ((cms->elements_added - val) / (cms->width - 1));
+        if (cms->width == 1) {  // no other columns to estimate the noise from
+            mean_min_values[i] = val;
+        } else {
+            mean_min_values[i] = val - ((cms->elements_added - val) / (int64_t)(cms->width - 1));
+        }
     }
     // return the median of the mean_min_value array... need to sort first
     qsort(mean_min_values, cms->depth, sizeof(int64_t), __compare);
-    int32_t n = cms->depth;
+    uint32_t n = cms->depth;
+    int64_t median;
     if (n % 2 == 0) {
-        num_add = (mean_min_values[n/2] + mean_min_values[n/2 - 1]) / 2;
+        median = (mean_min_values[n/2] + mean_min_values[n/2 - 1]) / 2;
     } else {
-        num_add = mean_min_values[n/2];
+        median = mean_min_values[n/2];
     }
     free(mean_min_values);
-    return num_add;
+    // the median can be outside the int32 range; clamp it as the bins are
+    if (median > INT32_MAX) {
+        return INT32_MAX;
+    } else if (median < INT32_MIN) {
+        return INT32_MIN;
+    }
+    return (int32_t)median;
 }
 
 int32_t cms_check_mean_min(CountMinSketch* cms, const char* key) {
     uint64_t* hashes = cms_get_hashes(cms, key);
+    if (hashes == NULL) {  // the hash function could not allocate the hashes
+        return CMS_ERROR;
+    }
     int32_t num_add = cms_check_mean_min_alt(cms, hashes, cms->depth);
     free(hashes);
     return num_add;
@@ -224,9 +260,13 @@ int cms_import_alt(CountMinSketch* cms, const char* filepath, cms_hash_function 
         fprintf(stderr, "Can't open file %s!\n", filepath);
         return CMS_ERROR;
     }
-    __read_from_file(cms, fp, 0, NULL);
-    cms->hash_function = (hash_function == NULL) ? __default_hash : hash_function;
+    int res = __read_from_file(cms, fp, 0, NULL);
     fclose(fp);
+    if (res != CMS_SUCCESS) {
+        fprintf(stderr, "Unable to import the count-min sketch from %s!\n", filepath);
+        return CMS_ERROR;
+    }
+    cms->hash_function = (hash_function == NULL) ? __default_hash : hash_function;
     return CMS_SUCCESS;
 }
 
@@ -281,17 +321,27 @@ int cms_merge_into(CountMinSketch* cms, int num_sketches, ...) {
 /*******************************************************************************
 *    PRIVATE FUNCTIONS
 *******************************************************************************/
+static int __valid_dimensions(uint64_t width, uint64_t depth) {
+    /*  bin indexes are uint32_t, so width * depth must fit in one; computing it in 64 bits also
+        stops it from overflowing, which allocated too few bins */
+    return width >= 1 && depth >= 1 && width * depth <= UINT32_MAX;
+}
+
 static int __setup_cms(CountMinSketch* cms, unsigned int width, unsigned int depth, double error_rate, double confidence, cms_hash_function hash_function) {
+    if (!__valid_dimensions(width, depth)) {
+        fprintf(stderr, "Unable to initialize the count-min sketch since width * depth must be between 1 and UINT32_MAX!\n");
+        return CMS_ERROR;
+    }
     cms->width = width;
     cms->depth = depth;
     cms->confidence = confidence;
     cms->error_rate = error_rate;
     cms->elements_added = 0;
-    cms->bins = (int32_t*)calloc((width * depth), sizeof(int32_t));
+    cms->bins = (int32_t*)calloc((size_t)width * depth, sizeof(int32_t));
     cms->hash_function = (hash_function == NULL) ? __default_hash : hash_function;
 
     if (NULL == cms->bins) {
-        fprintf(stderr, "Failed to allocate %zu bytes for bins!", ((width * depth) * sizeof(int32_t)));
+        fprintf(stderr, "Failed to allocate %zu bytes for bins!", ((size_t)width * depth * sizeof(int32_t)));
         return CMS_ERROR;
     }
     return CMS_SUCCESS;
@@ -317,29 +367,40 @@ static void __write_to_file(const CountMinSketch* cms, FILE *fp, short on_disk) 
     fwrite(&cms->elements_added, sizeof(int64_t), 1, fp);
 }
 
-static void __read_from_file(CountMinSketch* cms, FILE *fp, short on_disk, const char* filename) {
-    /* read in the values from the file before getting the sketch itself */
-    int offset = (sizeof(int32_t) * 2) + sizeof(long);
-    fseek(fp, offset * -1, SEEK_END);
-
-    fread(&cms->width, sizeof(int32_t), 1, fp);
-    fread(&cms->depth, sizeof(int32_t), 1, fp);
-    cms->confidence = 1 - (1 / pow(2, cms->depth));
-    cms->error_rate = 2 / (double) cms->width;
-    fread(&cms->elements_added, sizeof(int64_t), 1, fp);
+static int __read_from_file(CountMinSketch* cms, FILE *fp, short on_disk, const char* filename) {
+    (void)filename;
+    /*  read in the values from the file before getting the sketch itself; the footer is
+        width (uint32), depth (uint32), and elements added (int64): sizeof(long) is 4 on Windows */
+    long offset = (sizeof(uint32_t) * 2) + sizeof(int64_t);
+    uint32_t width = 0, depth = 0;
+    int64_t elements_added = 0;
+    if (fseek(fp, offset * -1, SEEK_END) != 0
+        || fread(&width, sizeof(uint32_t), 1, fp) != 1
+        || fread(&depth, sizeof(uint32_t), 1, fp) != 1
+        || fread(&elements_added, sizeof(int64_t), 1, fp) != 1
+        || !__valid_dimensions(width, depth)) {
+        return CMS_ERROR;
+    }
 
     rewind(fp);
-    size_t length = cms->width * cms->depth;
+    size_t length = (size_t)width * depth;
+    int32_t* bins = NULL;
     if (on_disk == 0) {
-        cms->bins = (int32_t*)malloc(length * sizeof(int32_t));
-        size_t read = fread(cms->bins, sizeof(int32_t), length, fp);
-        if (read != length) {
-            perror("__read_from_file: ");
-            exit(1);
+        bins = (int32_t*)malloc(length * sizeof(int32_t));
+        if (bins == NULL || fread(bins, sizeof(int32_t), length, fp) != length) {
+            free(bins);
+            return CMS_ERROR;
         }
     } else {
         // TODO: decide if this should be done directly on disk or not
     }
+    cms->width = width;
+    cms->depth = depth;
+    cms->confidence = 1 - (1 / pow(2, cms->depth));
+    cms->error_rate = 2 / (double) cms->width;
+    cms->elements_added = elements_added;
+    cms->bins = bins;
+    return CMS_SUCCESS;
 }
 
 static void __merge_cms(CountMinSketch* base, int num_sketches, va_list* args) {
@@ -384,13 +445,17 @@ static int __validate_merge(const CountMinSketch* base, int num_sketches, va_lis
             return CMS_ERROR;
         }
     }
+    va_end(ap);
     return CMS_SUCCESS;
 }
 
 /* NOTE: The caller will free the results */
 static uint64_t* __default_hash(unsigned int num_hashes, const char* str) {
     uint64_t* results = (uint64_t*)calloc(num_hashes, sizeof(uint64_t));
-    int i;
+    if (results == NULL) {  // out of memory; the callers return CMS_ERROR
+        return NULL;
+    }
+    unsigned int i;
     for (i = 0; i < num_hashes; ++i) {
         results[i] = __fnv_1a(str, i);
     }
@@ -410,7 +475,10 @@ static uint64_t __fnv_1a(const char* key, int seed) {
 
 
 static int __compare(const void *a, const void *b) {
-  return ( *(int64_t*)a - *(int64_t*)b );
+    /* compare rather than subtract: the difference of two int64 values does not fit in an int */
+    const int64_t x = *(const int64_t*)a;
+    const int64_t y = *(const int64_t*)b;
+    return (x > y) - (x < y);
 }
 
 
@@ -446,7 +514,7 @@ static int32_t __safe_sub(int32_t a, uint32_t b) {
             c = INT32_MIN;
         }
     #else
-        c = ((int64_t) b - a < INT32_MIN) ? INT32_MAX : (a - b);
+        c = ((int64_t) a - b < INT32_MIN) ? INT32_MIN : (int32_t)((int64_t) a - b);
     #endif
 
     return c;
@@ -455,6 +523,9 @@ static int32_t __safe_sub(int32_t a, uint32_t b) {
 static int32_t __safe_add_2(int32_t a, int32_t b) {
     if (a == INT32_MAX || a == INT32_MIN) {
         return a;
+    }
+    if (b == INT32_MAX || b == INT32_MIN) {  // a saturated count is unknown, so the sum is too
+        return b;
     }
 
     /* use the gcc macro if compiling with GCC, otherwise, simple overflow check */

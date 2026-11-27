@@ -50,7 +50,8 @@ typedef struct {
 
     Returns:
         CMS_SUCCESS
-        CMS_ERROR   -   when unable to allocate the desired cms object or when width or depth are 0 */
+        CMS_ERROR   -   when unable to allocate the desired cms object, when width or depth are 0,
+                        or when width * depth is larger than UINT32_MAX */
 int cms_init_alt(CountMinSketch* cms, unsigned int width, unsigned int depth, cms_hash_function hash_function);
 static __inline__ int cms_init(CountMinSketch* cms, unsigned int width, unsigned int depth) {
     return cms_init_alt(cms, width, depth, NULL);
@@ -63,7 +64,8 @@ static __inline__ int cms_init(CountMinSketch* cms, unsigned int width, unsigned
 
     Returns:
         CMS_SUCCESS
-        CMS_ERROR   -   when unable to allocate the desired cms object or when error_rate or confidence is negative */
+        CMS_ERROR   -   when unable to allocate the desired cms object, when error_rate is not positive,
+                        when confidence is not between 0 and 1, or when they need too large a sketch */
 int cms_init_optimal_alt(CountMinSketch* cms, double error_rate, double confidence, cms_hash_function hash_function);
 static __inline__ int cms_init_optimal(CountMinSketch* cms, float error_rate, float confidence) {
     return cms_init_optimal_alt(cms, error_rate, confidence, NULL);
@@ -94,7 +96,7 @@ int cms_export(const CountMinSketch* cms, const char* filepath);
 
     Return:
         CMS_SUCCESS - When file is opened and written
-        CMS_ERROR   - When file is unable to be opened
+        CMS_ERROR   - When file is unable to be opened, or is not a valid count-min sketch export
 
     NOTE: It is up to the caller to provide the correct hashing algorithm */
 int cms_import_alt(CountMinSketch* cms, const char* filepath, cms_hash_function hash_function);
@@ -165,6 +167,9 @@ static __inline__ int32_t cms_check_min_alt(CountMinSketch* cms, const uint64_t*
 int32_t cms_check_mean(CountMinSketch* cms, const char* key);
 int32_t cms_check_mean_alt(CountMinSketch* cms, const uint64_t* hashes, unsigned int num_hashes);
 
+/*  Determine the mean-min (median of the count-min-mean) number of times the key may have
+    been inserted; the result is clamped to the int32 range
+    NOTE: With a width of 1 there is no noise to estimate, so the median of the counts is used */
 int32_t cms_check_mean_min(CountMinSketch* cms, const char* key);
 int32_t cms_check_mean_min_alt(CountMinSketch* cms, const uint64_t* hashes, unsigned int num_hashes);
 
@@ -172,7 +177,8 @@ int32_t cms_check_mean_min_alt(CountMinSketch* cms, const uint64_t* hashes, unsi
     the count-min sketch
     NOTE: Useful when multiple count-min sketches use the same hashing
     functions
-    NOTE: Up to the caller to free the array of hash values */
+    NOTE: Up to the caller to free the array of hash values
+    NOTE: Returns NULL if the memory cannot be allocated */
 uint64_t* cms_get_hashes_alt(CountMinSketch* cms, unsigned int num_hashes, const char* key);
 static __inline__ uint64_t* cms_get_hashes(CountMinSketch* cms, const char* key) {
     return cms_get_hashes_alt(cms, cms->depth, key);
