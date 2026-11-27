@@ -349,10 +349,8 @@ static int __setup_cms(CountMinSketch* cms, unsigned int width, unsigned int dep
 
 static void __write_to_file(const CountMinSketch* cms, FILE *fp, short on_disk) {
     if (on_disk == 0) {
-        uint32_t length = cms->depth * cms->width;
-        for (uint32_t i = 0; i < length; ++i) {
-            fwrite(&cms->bins[i], sizeof(int32_t), 1, fp);
-        }
+        // the bins are contiguous, so write them in one call rather than one call per bin
+        fwrite(cms->bins, sizeof(int32_t), (size_t)cms->depth * cms->width, fp);
     } else {
         // TODO: decide if this should be done directly on disk or not
         // will need to write out everything by hand

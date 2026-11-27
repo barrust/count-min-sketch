@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <openssl/evp.h>
 #include <openssl/md5.h>
@@ -530,6 +531,36 @@ MU_TEST(test_cms_import_invalid) {
     remove(filepath);
 }
 
+MU_TEST(test_cms_export_matches_bins) {
+    /* the export is the bins in memory order, then the footer */
+    CountMinSketch c;
+    cms_init(&c, 100, 4);
+    for (int i = 0; i < 1000; ++i) {
+        char key[16] = {0};
+        sprintf(key, "%d", i);
+        cms_add_inc(&c, key, (uint32_t)(i % 5 + 1));
+    }
+    char filepath[] = "./tests/test_export_bins.cms";
+    cms_export(&c, filepath);
+    FILE* fp = fopen(filepath, "rb");
+    int32_t* bins = (int32_t*)calloc(400, sizeof(int32_t));
+    uint32_t width = 0, depth = 0;
+    int64_t elements = 0;
+    mu_assert_int_eq(400, fread(bins, sizeof(int32_t), 400, fp));
+    mu_assert_int_eq(1, fread(&width, sizeof(uint32_t), 1, fp));
+    mu_assert_int_eq(1, fread(&depth, sizeof(uint32_t), 1, fp));
+    mu_assert_int_eq(1, fread(&elements, sizeof(int64_t), 1, fp));
+    mu_assert_int_eq(EOF, fgetc(fp));
+    fclose(fp);
+    mu_assert_int_eq(0, memcmp(bins, c.bins, 400 * sizeof(int32_t)));
+    mu_assert_int_eq(100, width);
+    mu_assert_int_eq(4, depth);
+    mu_assert(elements == c.elements_added, "elements added should match");
+    free(bins);
+    remove(filepath);
+    cms_destroy(&c);
+}
+
 /* a hash function that cannot allocate its results */
 static uint64_t* __null_hash(unsigned int num_hashes, const char* key) {
     (void)num_hashes;
@@ -601,6 +632,7 @@ MU_TEST_SUITE(test_suite) {
     MU_RUN_TEST(test_cms_merge_keeps_saturation);
     MU_RUN_TEST(test_cms_import_invalid);
     MU_RUN_TEST(test_cms_hash_allocation_failure);
+    MU_RUN_TEST(test_cms_export_matches_bins);
     MU_RUN_TEST(test_cms_merge_into);
     MU_RUN_TEST(test_cms_merge_into_mismatch);
     MU_RUN_TEST(test_cms_merge_mismatch);

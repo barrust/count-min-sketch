@@ -10,6 +10,7 @@
 * Fix: importing read the footer at the wrong offset on Windows (`sizeof(long)` is 4 there), did not check the values it read or the file size (so a crafted footer could make it allocate far more than the file holds, and `malloc(length * sizeof(int32_t))` could overflow with a 32-bit `size_t`), and called `exit(1)` on a short read; it now checks the file is exactly the size its footer describes before allocating, and returns `CMS_ERROR` for an invalid file
 * Fix: a failed hash allocation is now returned as `CMS_ERROR` instead of dereferencing `NULL`; `cms_get_hashes()` returns `NULL` if the memory cannot be allocated
 * Fix: the overflow check used without `__builtin_sub_overflow` returned the wrong limit, and `va_end` was not called after validating a merge
+* Performance: exporting writes all the bins in one `fwrite()` call instead of one per bin (a 20 MB sketch went from about 100 ms to 5 ms); the file is unchanged
 * CI: test with gcc 13, 14, and 15 (Ubuntu 26.04), and remove the cppcheck suppression that no longer matches
 
 ### Version 0.2.0
